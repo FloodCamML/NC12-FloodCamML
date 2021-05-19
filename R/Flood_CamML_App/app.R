@@ -5,8 +5,8 @@
 library(shiny)
 library(shinymaterial)
 library(datasets)
-#library(keras)
-#library(magick)
+library(keras)
+library(magick)
 library(tidyverse)
 
 
