@@ -1,64 +1,52 @@
-import os
-import urllib.request
-import sched, time
-import datetime
+library(dplyr)
+library(lubridate)
+library(readr)
+library(httr)
+library(magick)
 
-# Change the WD
-os.chdir("/home/pi/Documents/NC_TCs")
+# set the working directory
 
-#Mirlo, Ocracoke, and Hatteras URLs
-#from   https://www.drivenc.gov/
-Mirlo = "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_MirloBeach.jpg"
-Ocracoke = "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_OcracokeNorth.jpg"
-Hatteras = "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NorthHatterasVillage.jpg"
-Buxton = "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_Buxton.jpg"
-NewInlet = "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NewInlet.jpg"
-Canal = "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_CanalZone.jpg"
-NorthDock = "https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_North_Dock.jpg"
-SouthDock = "https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_South_Dock.jpg"
-SouthOcracoke = "https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg"
+# retrieve the image. We will need to know the time it was downloaded, so maybe this can be achieved by updating a reactive values list, where each site has it's own "time" value
 
-#unused RN
-RBNurl = "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg"
-OSurl = "https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg"
+# GetTrafficCam('Mirlo')
+get_traffic_cam <- function(camera_name) {
 
-#Minute delay
-Min = 10
+    # from   https://www.drivenc.gov/
+    Mirlo <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_MirloBeach.jpg'
+    # Ocracoke <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_OcracokeNorth.jpg"
+    # Hatteras <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NorthHatterasVillage.jpg"
+    # Buxton <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_Buxton.jpg"
+    # NewInlet <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NewInlet.jpg"
+    # Canal <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_CanalZone.jpg"
+    NorthDock <- "https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_North_Dock.jpg"
+    SouthDock <- "https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_South_Dock.jpg"
+    SouthOcracoke <- "https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg"
+    RBNurl <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg"
 
-#The function for the cameras
-def GetTrafficCam(URL,camera):
+    tmpfile <- tempfile(fileext = ".jpg")  # this file will need to be saved
+    #tmpfile2 <- tempfile(fileext = ".jpg")
 
     # retrieve the image
-    urllib.request.urlretrieve(URL, "dummy.jpg")
+    pic <- magick::image_read(URL)
+    time <-  Sys.time() %>% lubridate::with_tz("UTC")
 
-    #determine image name
-    ImName = camera + '/' + str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")) + '-' + camera + '.jpg'
+    # write the image to temporary file. This will be handy for Shiny where renderImage requires an "outfile".
+    pic %>% magick::image_write(tmpfile)
+
+    # Scale image to correct dimensions & write to other temp file. Could also use built-in keras functions
+    #pic %>%
+    #    magick::image_scale(geometry = geometry_size_pixels(width=224,height=224,preserve_aspect = F)) %>%
+    #    magick::image_write(tmpfile2)
+
+    return(tmpfile)
+}
+
+    ##determine image name
+    #ImName = camera + '/' + str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")) + '-' + camera + '.jpg'
 
     #save image
-    os.rename('dummy.jpg', ImName)
+    #os.rename('dummy.jpg', ImName)
 
-def LookAtTraffic():
 
-    #print for debug
-    print ("looking at traffic...%s" % datetime.datetime.now())
 
-    #cameras:
-    GetTrafficCam(Mirlo,'Mirlo')
-    GetTrafficCam(Ocracoke,'Ocracoke')
-    GetTrafficCam(Hatteras, 'Hatteras')
-    GetTrafficCam(Buxton, 'Buxton')
-    GetTrafficCam(Canal, 'Canal')
-    GetTrafficCam(NewInlet, 'NewInlet')
-    GetTrafficCam(NorthDock,'NorthDock')
-    GetTrafficCam(SouthDock, 'SouthDock')
-    GetTrafficCam(SouthOcracoke, 'SouthOcracoke')
-
-#schedule
-scheduler = sched.scheduler(time.time, time.sleep)
-scheduler.enter(0, 1, LookAtTraffic, ())
-
-#loop to make it go
-while True:
-    scheduler.run()
-    scheduler.enter(Min*60, 1, LookAtTraffic, ())
 
