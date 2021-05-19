@@ -19,16 +19,26 @@ get_traffic_cam <- function(camera_name){
     if (camera_name == 'SouthOcracoke'){
         URL <- 'https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg'
     }
-
-    # Ocracoke <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_OcracokeNorth.jpg"
-    # Hatteras <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NorthHatterasVillage.jpg"
-    # Buxton <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_Buxton.jpg"
-    # NewInlet <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NewInlet.jpg"
-    # Canal <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_CanalZone.jpg"
-    # RBNurl <- "https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg"
+    #if (camera_name == 'Ocracoke'){
+    #    URL <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_OcracokeNorth.jpg'
+    #}
+    #if (camera_name == 'Hatteras'){
+    #    URL <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NorthHatterasVillage.jpg'
+    #}
+    #if (camera_name == 'Buxton'){
+    #    URL <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_Buxton.jpg'
+    #}
+    #if (camera_name == 'NewInlet'){
+    #    URL <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NewInlet.jpg'
+    #}
+        #if (camera_name == 'Canal'){
+    #    URL <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_CanalZone.jpg'
+    #}
+    #if (camera_name == 'RBNurl'){
+    #    URL <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg'
+    #}
 
     tmpfile <- tempfile(fileext = ".jpg")  # this file will need to be sent to GoogleDrive eventually: do in Shiny?
-    #tmpfile2 <- tempfile(fileext = ".jpg")
 
     # retrieve the image
     pic <- magick::image_read(URL)
@@ -36,7 +46,7 @@ get_traffic_cam <- function(camera_name){
 
     # write the image to temporary file. This will be handy for Shiny where renderImage requires an "outfile".
     magick::image_write(pic, path = tmpfile, format = "jpg")
-    #magick::image_write(pic, path = 'test.jpg', format = "jpg")
+    magick::image_write(pic, path = paste(camera_name,'.jpg'), format = "jpg")
 
     return(tmpfile)
 }
