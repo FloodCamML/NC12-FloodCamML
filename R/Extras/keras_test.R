@@ -10,7 +10,7 @@ library(reticulate)
 # For tensorflow w/shinyapps.io, need to add the line below:
 # Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
 
-Sys.setenv(RETICULATE_PYTHON = 'C:/python39')
+# Sys.setenv(RETICULATE_PYTHON = 'C:/python39')
 
 model <- keras::load_model_tf("C:/GitHub/FloodCamMLShiny/R/Flood_CamML_App/ml/supervised")
 
