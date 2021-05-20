@@ -16,13 +16,15 @@ library(googlesheets4)
 
 
 # Google auth
-source("C:/Users/Adam Gold/Downloads/google_keys.R")
+source("google_keys.R")
 
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
-API_KEY <- Sys.getenv("GOOGLE_API_KEY")
+API_KEY   <- Sys.getenv("GOOGLE_API_KEY")
 
 googledrive::drive_auth_configure(api_key = API_KEY)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
+
+model <- keras::load_model_tf("C:/GitHub/FloodCamMLShiny/R/Flood_CamML_App/ml/supervised")
 
 ## 1. Load Models ---------------------------------------------------------------------
 
@@ -63,7 +65,7 @@ get_traffic_cam <- function(camera_name){
   #    URL <- 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg'
   #}
   
-  tmpfile <- tempfile(fileext = ".jpg")  # this file will need to be sent to GoogleDrive eventually: do in Shiny?
+  # tmpfile <- tempfile(fileext = ".jpg")  # this file will need to be sent to GoogleDrive eventually: do in Shiny?
   
   # retrieve the image
   pic <- magick::image_read(URL)
@@ -76,27 +78,46 @@ get_traffic_cam <- function(camera_name){
   return(time)
 }
 
+
+
 ## 3. Functions to classify Images ---------------------------------------------------------------------
 
 
+
+
+
+
+
+
+
+
+
+
+
+####____________________________________####
 #------------------------ Define UI ---------------------------------------
 ui <- dashboardPage(
   title = "NC12 Flood CamML", 
   skin = "black",
   
+  
+  #####  Header  ####
   header = dashboardHeader(
     title =  HTML('
                 <div width="300px">
                       <i class="fas fa-camera-retro" role="presentation" aria-label="camera icon" style="color:#ffffff;position:absolute;left:25px;top:15px"></i><p style="color:white">NC12 Flood CamML</p>
                 </div>
                       '),
-    titleWidth = 350
-  ),
+    titleWidth = 350),
+  
+  
+  #####  Sidebar  ####
   sidebar = dashboardSidebar(
     width = 350,
     sidebarMenu(
       id = "nav",
       
+      #####_ Model 1  ####
       menuItem("Model 1", tabName = "Model1", icon = icon("robot")),
       
       conditionalPanel(
@@ -111,6 +132,8 @@ ui <- dashboardPage(
             )
         )
       ), 
+      
+      #####_ Model 2 ####
       menuItem("Model 2", tabName = "Model2", icon = icon("robot")),
       
       conditionalPanel(
@@ -130,6 +153,8 @@ ui <- dashboardPage(
       br()
     )
   ),
+  
+  #####  Dashboard Body  ####
   dashboardBody(
     fluidPage(
       disconnectMessage(
@@ -183,10 +208,16 @@ ui <- dashboardPage(
         }
           
       '))),
+      
+      ##### Tab Items  ####
       tabItems(
         
+        
+        ###### Model 1 ####
         tabItem(tabName = "Model1",
                 fluidRow(
+                  
+                  ######_ Prediction Key  ####
                   box(solidHeader = T,
                       column(width=6,
                         h2("Model predictions"),
@@ -198,63 +229,65 @@ ui <- dashboardPage(
                              h3("Help us validate, click 'Flooding' or 'No Flooding'")
                              )
                   ),
+                  
+                  ######_ Latest Conditions  ####
                   box(solidHeader = T,
                     h1("Latest conditions")
                   )
                 ),
+                
+                ######_ Mod 1 Cams  ####
                 fluidRow(
+                  
+                  # Mirlo
                   column(width=6,
-                        uiOutput(outputId = "mirlo_selection")
-                    ),
+                         uiOutput(outputId = "mirlo_selection")),
+                  
+                  # NorthDock
                   column(width=6,
-                         box(width="100%",
-                             height=300,
-                             title = paste0("Test"),
-                             solidHeader = T,
-                             status = "warning",
-                           h1("Test")
-                         )
-                  )
+                         uiOutput(outputId = "northdock_selection"))
                   ),
+                
+                # Second Row
                 fluidRow(
+                  
+                  # Tester for "Danger"
                   column(width=6,
-                         box(width="100%",
-                             height=300,
-                             title = "Test2",
-                             solidHeader = T,
-                             status = "danger",
-                             h1("Test2")
-                         )
-                  ),
+                         uiOutput(outputId = "southdock_selection")),
+                  
+                  # Test Box 
                   column(width=6,
-                         box(width="100%",
-                             height=300,
-                             h1("Test3")
-                         )
-                  )
-                  ),
-                fluidRow(
-                  column(width=6,
-                         box(width="100%",
-                             height=300,
-                             h1("Test4")
-                         )
-                  ),
-                  column(width=6,
-                         box(width="100%",
-                             height=300,
-                             h1("Test6")
-                         )
-                  )
-                )
+                         uiOutput(outputId = "southocracoke_selection"))
+                  )#,
+                
+                # # Third Row
+                # fluidRow(
+                #   
+                #   # Test Box
+                #   column(width=6,
+                #          box(width="100%",
+                #              height=300,
+                #              h1("Test4"))),
+                #   
+                #   # Test Box 
+                #   column(width=6,
+                #          box(width="100%",
+                #              height=300,
+                #              h1("Test6")))
+                # )
         ), 
         
+        
+        ###### Model 2 ####
         # Tab showing selected data and time series graphs
         tabItem(tabName = "Model2",
+                
+                #####_ Mod 2 Cams  ####
                 fluidRow(
                   column(width=6,
                          uiOutput(outputId = "mirlo_selection_unsupervised")
                   ),
+                  
                   column(width=6,
                          box(width="100%",
                              height=300,
@@ -265,6 +298,7 @@ ui <- dashboardPage(
                          )
                   )
                 ),
+                
                 fluidRow(
                   column(width=6,
                          box(width="100%",
@@ -311,6 +345,14 @@ ui <- dashboardPage(
 
 
 
+
+
+
+
+
+####_______________________________####
+####  Server  ####
+
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
@@ -324,73 +366,324 @@ server <- function(input, output, session) {
              animation=F,
              size = "s",
              inputId = "splash_page")
-  #-------------- Set up Reactive Values to hold user input -------------
-  button_info_model1 <- reactiveValues(mirlo_button_info = NULL)
-  button_info_model2 <- reactiveValues(mirlo_button_info = NULL)
   
   
-  #--------------- Full test for one square ----------------------
+  
+  
+  
+  
+  
+  #-------------- Reactive Value Holders -------------
+  # These capture user inputs for later
+  
+  # feedback on model 1
+  button_info_model1 <- reactiveValues(mirlo_button_info = NULL, 
+                                       northdock_button_info = NULL,
+                                       southdock_button_info = NULL,
+                                       southocracoke_button_info = NULL)
+  
+  # feedback on model 2
+  button_info_model2 <- reactiveValues(mirlo_button_info = NULL, 
+                                       northdock_button_info = NULL,
+                                       southdock_button_info = NULL,
+                                       southocracoke_button_info = NULL)
+  
+  
+  observe({
+    print(button_info_model1$mirlo_button_info)
+    print(button_info_model1$northdock_button_info)
+    print(button_info_model1$southdock_button_info)
+    print(button_info_model1$southocracoke_button_info)
+    
+  })
+  
+  
+  
+  ####____________________________####
+  ####__  Supervised Model Displays __####
+
+  #--------------- Get Cam Images ----------------------
+  
+  
+  # Get Traffic Cam Images
+  
+  # Mirlo Cam
   mirlo_time_reactive <- reactive({
     invalidateLater(millis = 5*60*1000, session = session)
     get_traffic_cam("Mirlo")
   })
 
+  # Northdock cam
+  northdock_time_reactive <- reactive({
+    invalidateLater(millis = 5*60*1000, session = session)
+    get_traffic_cam("NorthDock")
+  })
+  
+  # Southdock cam
+  southdock_time_reactive <- reactive({
+    invalidateLater(millis = 5*60*1000, session = session)
+    get_traffic_cam("SouthDock")
+  })
+  
+  # SouthOcracoke cam
+  southocracoke_time_reactive <- reactive({
+    invalidateLater(millis = 5*60*1000, session = session)
+    get_traffic_cam("SouthOcracoke")
+  })
+  
+  
+  
+  #--------------- Model Results ----------------------
+  
+  # Get Predictions
+  
   mirlo_predict <- reactive({
 
     # code to predict. Can use "Mirlo.jpg" as path for keras code
   })
   
+  northdock_predict <- reactive({
+    
+    # code to predict. Can use "Mirlo.jpg" as path for keras code
+  })
+  
+  southdock_predict <- reactive({
+    
+    # code to predict. Can use "Mirlo.jpg" as path for keras code
+  })
+  
+  southocracoke_predict <- reactive({
+    
+    # code to predict. Can use "Mirlo.jpg" as path for keras code
+  })
+  
+  
+  #--------------- Render Images ----------------------
+  
+  
   # Initialize wait screen for individual pics. Need one of these for each site
-  w <- Waiter$new(id="mirlo_selection",
+  w <- Waiter$new(id = "mirlo_selection",
                   html = spin_3k(),
                   color = transparent(.75))
   
+  
+  # 1. Display for Cam Image
+  
+  # Mirlo
   output$mirlo_picture <- renderImage({
     outfile <- "Mirlo.jpg"
-    
     list(src= outfile,
          alt = "Mirlo Beach",
-         width = "100%"
-         # height="180px"
+         width = "100%"#, height="180px"
          )
   }, deleteFile=F)
   
+  # Northdock
+  output$northdock_picture <- renderImage({
+    outfile <- "NorthDock.jpg"
+    
+    list(src= outfile,
+         alt = "NorthDock",
+         width = "100%" #, height="180px"
+    )
+  }, deleteFile=F)
+  
+  # SouthDock
+  output$southdock_picture <- renderImage({
+    outfile <- "SouthDock.jpg"
+    
+    list(src= outfile,
+         alt = "SouthDock",
+         width = "100%" #, height="180px"
+    )
+  }, deleteFile=F)
+  
+  # SouthOcracoke
+  output$southocracoke_picture <- renderImage({
+    outfile <- "SouthOcracoke.jpg"
+    
+    list(src= outfile,
+         alt = "SouthOcracoke",
+         width = "100%" #, height="180px"
+    )
+  }, deleteFile=F)
+  
+  
+  #--------------- Reactive UI ----------------------
+  
+  # 2. Display for image box / model classification
+  
+  # mirlo
   output$mirlo_selection <- renderUI({
     w$show()
-
     box(width="100%",
         # height=300,
         solidHeader = T,
         status = "success", #ifelse(mirlo_predict() >= 0.6, "danger", ifelse(mirlo_predict() <0.6 & mirlo_predict() >=0.4, "warning", "success"))
-        title = "Mirlo",
-        align="center",
-        imageOutput("mirlo_picture",height="100%"),
+        title  = "Mirlo",
+        align  = "center",
+        # Display Cam Image
+        imageOutput("mirlo_picture",
+                    height="100%"),
+        # Datetime for image
         p(paste0(mirlo_time_reactive() %>% lubridate::with_tz("America/New_York"), " EDT/EST")),
+        # Inline boxes for user feedback
         div(style="display:inline-block",
-          shinyWidgets::radioGroupButtons(inputId = "mirlo_button_select", choiceNames = c("Flooding","No Flooding"), choiceValues = c("Flooding","No Flooding"), justified = F, selected = character(0), checkIcon = list(yes = icon("ok",lib="glyphicon")))
+          shinyWidgets::radioGroupButtons(inputId = "mirlo_button_select", 
+                                          choiceNames = c("Flooding", "Not Sure", "No Flooding"), 
+                                          choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                                          justified = F, 
+                                          selected = character(0), 
+                                          checkIcon = list(yes = icon("ok",lib="glyphicon")))
           ),
+        
+        # clear selection button
         div(style="display:inline-block",
-         actionButton(inputId = "mirlo_clear", label = "Clear", class = "btn btn-primary", style="font-size:10pt;color:white")
-        )
+         actionButton(inputId = "mirlo_clear", 
+                      label = "Clear", 
+                      class = "btn btn-primary", 
+                      style = "font-size:10pt;color:white")
+         )
          )
   })
   
-  #------------------ Code for one unsupervised square ----------------
+  # Northdock
+  output$northdock_selection <- renderUI({
+    w$show()
+    
+    box(width="100%",
+        # height=300,
+        solidHeader = T,
+        status = "success", #ifelse(mirlo_predict() >= 0.6, "danger", ifelse(mirlo_predict() <0.6 & mirlo_predict() >=0.4, "warning", "success"))
+        title  = "NorthDock",
+        align  = "center",
+        # Display Cam Image
+        imageOutput("northdock_picture",
+                    height="100%"),
+        # Datetime for image
+        p(paste0(northdock_time_reactive() %>% lubridate::with_tz("America/New_York"), " EDT/EST")),
+        # Inline boxes for user feedback
+        div(style="display:inline-block",
+            shinyWidgets::radioGroupButtons(inputId = "northdock_button_select", 
+                                            choiceNames = c("Flooding", "Not Sure", "No Flooding"), 
+                                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                                            justified = F, 
+                                            selected = character(0), 
+                                            checkIcon = list(yes = icon("ok",lib="glyphicon")))
+        ),
+        
+        # clear selection button
+        div(style="display:inline-block",
+            actionButton(inputId = "northdock_clear", 
+                         label = "Clear", 
+                         class = "btn btn-primary", 
+                         style = "font-size:10pt;color:white")
+        )
+    )
+  })
+  
+  
+  # SouthDock
+  output$southdock_selection <- renderUI({
+    w$show()
+    
+    box(width="100%",
+        # height=300,
+        solidHeader = T,
+        status = "success", #ifelse(mirlo_predict() >= 0.6, "danger", ifelse(mirlo_predict() <0.6 & mirlo_predict() >=0.4, "warning", "success"))
+        title  = "SouthDock",
+        align  = "center",
+        # Display Cam Image
+        imageOutput("southdock_picture",
+                    height="100%"),
+        # Datetime for image
+        p(paste0(southdock_time_reactive() %>% lubridate::with_tz("America/New_York"), " EDT/EST")),
+        # Inline boxes for user feedback
+        div(style="display:inline-block",
+            shinyWidgets::radioGroupButtons(inputId = "southdock_button_select", 
+                                            choiceNames = c("Flooding", "Not Sure", "No Flooding"), 
+                                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                                            justified = F, 
+                                            selected = character(0), 
+                                            checkIcon = list(yes = icon("ok",lib="glyphicon")))
+        ),
+        
+        # clear selection button
+        div(style="display:inline-block",
+            actionButton(inputId = "southdock_clear", 
+                         label = "Clear", 
+                         class = "btn btn-primary", 
+                         style = "font-size:10pt;color:white")
+        )
+    )
+  })
+  
+  
+  # SouthOcracoke
+  output$southocracoke_selection <- renderUI({
+    w$show()
+    
+    box(width="100%",
+        # height=300,
+        solidHeader = T,
+        status = "success", #ifelse(mirlo_predict() >= 0.6, "danger", ifelse(mirlo_predict() <0.6 & mirlo_predict() >=0.4, "warning", "success"))
+        title  = "NorthDock",
+        align  = "center",
+        # Display Cam Image
+        imageOutput("southocracoke_picture",
+                    height="100%"),
+        # Datetime for image
+        p(paste0(southocracoke_time_reactive() %>% lubridate::with_tz("America/New_York"), " EDT/EST")),
+        # Inline boxes for user feedback
+        div(style="display:inline-block",
+            shinyWidgets::radioGroupButtons(inputId = "southocracoke_button_select", 
+                                            choiceNames = c("Flooding", "Not Sure", "No Flooding"), 
+                                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                                            justified = F, 
+                                            selected = character(0), 
+                                            checkIcon = list(yes = icon("ok",lib="glyphicon")))
+        ),
+        
+        # clear selection button
+        div(style="display:inline-block",
+            actionButton(inputId = "southocracoke_clear", 
+                         label = "Clear", 
+                         class = "btn btn-primary", 
+                         style = "font-size:10pt;color:white")
+        )
+    )
+  })
+  
+  
+  ####____________________________####
+  ####__  Un-Supervised Model Displays __####
+  #------------------ Get Cam Images  ----------------
+  
+  # 1. reset timer for images
   mirlo_time_reactive_unsupervised <- reactive({
     invalidateLater(millis = 5*60*1000, session = session)
     get_traffic_cam("Mirlo")
   })
   
+  #--------------- Model Results ----------------------
+  
+  # 2. Code to predict flood/not flood from model
   mirlo_predict_unsupervised <- reactive({
     
     # code to predict. Can use "Mirlo.jpg" as path for keras code
   })
   
+  
+  #--------------- Render Images ----------------------
+  
+  
   # Initialize wait screen for individual pics. Need one of these for each site
-  w <- Waiter$new(id="mirlo_selection_unsupervised",
+  w <- Waiter$new(id = "mirlo_selection_unsupervised",
                   html = spin_3k(),
                   color = transparent(.75))
   
+  
+  # Display image
   output$mirlo_picture_unsupervised <- renderImage({
     outfile <- "Mirlo.jpg"
     
@@ -401,6 +694,10 @@ server <- function(input, output, session) {
     )
   }, deleteFile=F)
   
+  
+  #--------------- Reactive UI ----------------------
+  
+  # Display model classification
   output$mirlo_selection_unsupervised <- renderUI({
     w$show()
     
@@ -409,44 +706,112 @@ server <- function(input, output, session) {
         solidHeader = T,
         status = "success", #ifelse(mirlo_predict_unsupervised() >= 0.6, "danger", ifelse(mirlo_predict_unsupervised() <0.6 & mirlo_predict_unsupervised() >=0.4, "warning", "success"))
         title = "Mirlo",
-        align="center",
+        align = "center",
         imageOutput("mirlo_picture_unsupervised",height="100%"),
         p(paste0(mirlo_time_reactive() %>% lubridate::with_tz("America/New_York"), " EDT/EST")),
+        # Inline boxes for user feedback
         div(style="display:inline-block",
-            shinyWidgets::radioGroupButtons(inputId = "mirlo_button_select_unsupervised", choiceNames = c("Flooding","No Flooding"), choiceValues = c("Flooding","No Flooding"), justified = F, selected = character(0), checkIcon = list(yes = icon("ok",lib="glyphicon")))
+            shinyWidgets::radioGroupButtons(inputId = "mirlo_button_select_unsupervised", 
+                                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                                            justified = F, selected = character(0), 
+                                            checkIcon = list(yes = icon("ok",lib="glyphicon")))
         ),
+        # clear selection button
         div(style="display:inline-block",
-            actionButton(inputId = "mirlo_clear_unsupervised", label = "Clear", class = "btn btn-primary", style="font-size:10pt;color:white")
-        )
+            actionButton(inputId = "mirlo_clear_unsupervised", 
+                         label = "Clear", 
+                         class = "btn btn-primary", 
+                         style="font-size:10pt;color:white"))
     )
   })
   
   
-  ########### Need reactive code to update button values for both supervised and unsupervised #######################
-  ########### I made a reactive value list above to store the value: ################################################
-  ########### button_info_model1$mirlo_button_info ##################################################################
-  ########### button_info_model2$mirlo_button_info ##################################################################
   
+  ####____________________________####
+  ####__  User Data Collection  __####
+  
+  
+  #------------------ Reactive reset buttons ----------------
+  
+  # 1.Reset supervised buttons
+  
+  # Mirlo
   observeEvent(input$mirlo_clear ,{
     updateRadioGroupButtons(session = session,
                             inputId = "mirlo_button_select",
-                            choiceNames = c("Flooding","No Flooding"), 
-                            choiceValues = c("Flooding","No Flooding"), 
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
                             selected = character(0), 
-                            checkIcon = list(yes = icon("ok",lib="glyphicon")))
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
   })
   
+  
+  
+  # NorthDock
+  observeEvent(input$northdock_clear ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "northdock_button_select",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  
+  # 2.Reset unsupervised buttons
+  
+  # Mirlo
   observeEvent(input$mirlo_clear_unsupervised ,{
     updateRadioGroupButtons(session = session,
                             inputId = "mirlo_button_select_unsupervised",
-                            choiceNames = c("Flooding","No Flooding"), 
-                            choiceValues = c("Flooding","No Flooding"), 
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
                             selected = character(0), 
-                            checkIcon = list(yes = icon("ok",lib="glyphicon")))
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  # NorthDock
+  observeEvent(input$northdock_clear_unsupervised ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "northdock_button_select_unsupervised",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
   })
   
   
+  
+  
+  ###########  Reactive Button Info #######################
+  
+  # Need reactive code to update button values for both supervised and unsupervised
+  # I made a reactive value list above to store the value: 
+  # button_info_model1$mirlo_button_info 
+  # button_info_model2$mirlo_button_info 
+  
+  # That code looked like this
+  # button_info_model1 <- reactiveValues(mirlo_button_info = NULL)
+  # button_info_model2 <- reactiveValues(mirlo_button_info = NULL)
+  
+  # Input ID's are:
+  # inputId = "mirlo_button_select",
+  # inputId = "mirlo_button_select_unsupervised",
+  
+  observeEvent(c(input$mirlo_button_select, input$mirlo_clear), {
+    button_info_model1$mirlo_button_info <- input$mirlo_button_select
+  })
+  
+  observeEvent(c(input$northdock_button_select, input$northdock_clear), {
+    button_info_model1$northdock_button_info <- input$northdock_button_select
+  })
+  
+  
+  
   #------------------- Submit button for model 1 -------------------
+  
+  # 1. Observe the user submission
   observeEvent(input$submit,{
     
     shinyalert(
@@ -469,6 +834,8 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  # 2. Put user data into table, push to google sheets:
   # Final submission for model 1 (tab 1)
   observeEvent(input$shinyalert ==T,{
     req(input$shinyalert)
@@ -477,21 +844,40 @@ server <- function(input, output, session) {
     updateActionButton(session = session,
                        inputId = "submit",
                        label = "SUBMITTED!", 
-                       icon = icon("ok",lib="glyphicon"))
+                       icon = icon("ok", lib = "glyphicon"))
     
     # disables submit button
     shinyjs::disable("submit")
     
-    data <- tibble(
-      "date" = c(mirlo_time_reactive()),
-      "location" = c("Mirlo"),
-      "filename" = c("mirlo_filename.jpg"), #change to whatever it ends up being
-      "model_type" = "supervised",
-      "model_score" = 0.3, # mirlo_predict()
-      "model_class" = "No Flooding",#ifelse(mirlo_predict() >= 0.5, "Flooding","No Flooding"),
+    # Data for supervised model submissions
+    
+    # 1. mirlo
+    mirlo_data <- tibble(
+      "date"          = c(mirlo_time_reactive()),
+      "location"      = c("Mirlo"),
+      "filename"      = c("Mirlo.jpg"), #change to whatever it ends up being
+      "model_type"    = "supervised",
+      "model_score"   = 0.3, # mirlo_predict()
+      "model_class"   = "No Flooding",#ifelse(mirlo_predict() >= 0.5, "Flooding","No Flooding"),
       "user_response" = button_info_model1$mirlo_button_info
     )
-
+    
+    # 2.northdock
+    northdock_data <- tibble(
+      "date"          = c(northdock_time_reactive()),
+      "location"      = c("northdock"),
+      "filename"      = c("northdock.jpg"), #change to whatever it ends up being
+      "model_type"    = "supervised",
+      "model_score"   = 0.3, # northdock_predict()
+      "model_class"   = "No Flooding",#ifelse(northdock_predict() >= 0.5, "Flooding","No Flooding"),
+      "user_response" = button_info_model1$northdock_button_info
+    )
+    
+    
+    # Join them into one table
+    data <- bind_rows(mirlo_data, northdock_data)
+    
+    # Append data to google sheet
     suppressMessages(googlesheets4::sheet_append(ss = sheets_ID,
                                                  data = data))
     
@@ -528,10 +914,11 @@ server <- function(input, output, session) {
     updateActionButton(session = session,
                        inputId = "submit2",
                        label = "SUBMITTED!", 
-                       icon = icon("ok",lib="glyphicon"))
+                       icon = icon("ok",lib = "glyphicon"))
     
     shinyjs::disable("submit2")
     
+    # Data for unsupervised model submissions
     data <- tibble(
       "date" = c(mirlo_time_reactive_unsupervised()),
       "location" = c("Mirlo"),
@@ -542,6 +929,7 @@ server <- function(input, output, session) {
       "user_response" = button_info_model2$mirlo_button_info
     )
     
+    # Append data to google sheet
     suppressMessages(googlesheets4::sheet_append(ss = sheets_ID,
                                                  data = data))
     
