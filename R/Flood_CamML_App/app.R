@@ -4,11 +4,13 @@
 # Packages  ---------------------------------------------------------------------
 library(shiny)
 library(shinymaterial)
+library(shinythemes)
 library(datasets)
 library(keras)
 library(magick)
 library(tidyverse)
 
+Sys.setlocale("LC_NUMERIC", "C")
 
 
 ####_____________________________####
@@ -41,30 +43,23 @@ library(tidyverse)
 
 
 ####_____________________________####
-# Material UI ---------------------------------------------------------------------
+#  UI ---------------------------------------------------------------------
+
+####__Material UI__####
 ui <- material_page(
     
     # # Adjust parallax height
     # tags$style(type="text/css", 
     #            ".parallax-container{height:150px}"),
-   
-     # Application title - color details
+    
+    # Application title - color details
     title = "NCDOT FloodCamML", 
     # include_nav_bar = TRUE,
     primary_theme_color = "#00695c", 
     secondary_theme_color = "#00796b",
     
     
-    
-    # ## Header Image ----------------------------------
-    # # Image in folder 'www' at same level as app.R
-    # material_parallax(
-    #     # image source: https://obxstuff.com/pages/things-to-do
-    #     image_source = "outer_banks_aerial.jpeg"
-    # ),
-    
-    
-    ## App Description ----------------------------------
+    ##### App Description ####
     material_row(
         material_column(
             width = 12,
@@ -81,21 +76,21 @@ ui <- material_page(
     ),
     
     
-    # Flooding Description
+    ##### Flooding Description  ####
     material_row(
         
         material_column(
             width = 12,
-        # Content Card
-        material_card(
-            h3("What is Nuisance and High Tide Flooding?"),
-            p("During extremely high tides, the sea literally spills onto land in some locations, inundating low-lying areas
+            # Content Card
+            material_card(
+                h3("What is Nuisance and High Tide Flooding?"),
+                p("During extremely high tides, the sea literally spills onto land in some locations, inundating low-lying areas
                    with seawater until high tide has passed. Because this flooding causes public inconveniences such as road closures
                    and overwhelmed storm drains, the events were initially called nuisance flooding.
                    To help people understand the cause of these events, they are now referred to as high-tide floods."),
-            a(href = "https://toolkit.climate.gov/topics/coastal-flood-risk/shallow-coastal-flooding-nuisance-flooding",
-              "Source")
-        )
+                a(href = "https://toolkit.climate.gov/topics/coastal-flood-risk/shallow-coastal-flooding-nuisance-flooding",
+                  "Source")
+            )
         )
     ),
     
@@ -110,7 +105,7 @@ ui <- material_page(
     ),
     
     
-    # ### Tab 1 Content - Background on Flooding  ####
+    # ###Tab 1 Content - Background on Flooding  ####
     # material_tab_content(
     #     tab_id = "first_tab",
     # 
@@ -125,7 +120,7 @@ ui <- material_page(
     #           "Source")
     #     )
     # ),
-
+    
     
     
     
@@ -275,7 +270,7 @@ ui <- material_page(
     #         )
     #     )
     # ), # Close Tab content 3
-   
+    
     
     
     
