@@ -24,6 +24,8 @@ API_KEY   <- Sys.getenv("GOOGLE_API_KEY")
 googledrive::drive_auth_configure(api_key = API_KEY)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
+model <- keras::load_model_tf("C:/GitHub/FloodCamMLShiny/R/Flood_CamML_App/ml/supervised")
+
 ## 1. Load Models ---------------------------------------------------------------------
 
 
@@ -387,6 +389,13 @@ server <- function(input, output, session) {
                                        southocracoke_button_info = NULL)
   
   
+  observe({
+    print(button_info_model1$mirlo_button_info)
+    print(button_info_model1$northdock_button_info)
+    print(button_info_model1$southdock_button_info)
+    print(button_info_model1$southocracoke_button_info)
+    
+  })
   
   
   
@@ -790,7 +799,13 @@ server <- function(input, output, session) {
   # inputId = "mirlo_button_select",
   # inputId = "mirlo_button_select_unsupervised",
   
+  observeEvent(c(input$mirlo_button_select, input$mirlo_clear), {
+    button_info_model1$mirlo_button_info <- input$mirlo_button_select
+  })
   
+  observeEvent(c(input$northdock_button_select, input$northdock_clear), {
+    button_info_model1$northdock_button_info <- input$northdock_button_select
+  })
   
   
   
