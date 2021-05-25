@@ -1,285 +1,337 @@
 
 
 
-# Packages  ---------------------------------------------------------------------
+####  Packages  ####
+library(dplyr)
+library(lubridate)
 library(shiny)
-library(shinymaterial)
-library(shinythemes)
-library(datasets)
-library(keras)
+library(shinydashboard)
+library(waiter)
 library(magick)
-library(tidyverse)
+library(shinyalert)
+library(stringr)
+library(shinydisconnect)
+library(tippy)
+library(httr)
+library(shinyWidgets)
+library(googledrive)
+library(googlesheets4)
+library(keras)
 
-Sys.setlocale("LC_NUMERIC", "C")
 
+####  Python Paths  ####
 
-####_____________________________####
-####  Load Workspace  ####
-
-# # For tensorflow w/shinyapps.io, need to add the line below:
+# Python Path for Publishing to shinyapps.io
 # Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
 
+# Adam G's python path
+# Sys.setenv(RETICULATE_PYTHON = 'C:/python39')
 
+# Adam K's python path
+reticulate::use_condaenv(condaenv = "py36")
+
+####  Google Auth  ####
+
+# Keys for Google Auth
+# source("./R/Flood_CamML_App/google_keys.R") # testing
+source("./google_keys.R") # publishing
+
+# load google authentications
+folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
+google_json_path <- Sys.getenv("GOOGLE_JSON_PATH")
+
+googledrive::drive_auth(path = google_json_path)
+googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 ## 1. Load Models ---------------------------------------------------------------------
 
+# Path to model within Github folder
+model <- keras::load_model_tf("./ml/supervised")
+
+
+## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
+
+get_traffic_cam <- function(camera_name){
+  
+  # from   https://www.drivenc.gov/
+  URL <- switch(
+    EXPR = camera_name,
+    'Mirlo'         = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_MirloBeach.jpg',
+    "NorthDock"     = 'https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_North_Dock.jpg',
+    "SouthDock"     = 'https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_South_Dock.jpg',
+    "SouthOcracoke" = 'https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg',
+    "Ocracoke"      = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_OcracokeNorth.jpg',
+    "Hatteras"      = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NorthHatterasVillage.jpg',
+    "Buxton"        = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_Buxton.jpg',
+    "NewInlet"      = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NewInlet.jpg',
+    "Canal"         = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_CanalZone.jpg',
+    "RBNurl"        = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg')
+  
+  # Load tmp file
+  # tmpfile <- tempfile(fileext = ".jpg")  # this file will need to be sent to GoogleDrive eventually: do in Shiny?
+  
+  # retrieve the image
+  pic <- magick::image_read(URL)
+  time <-  Sys.time() %>% lubridate::with_tz("UTC")
+  
+  # write the image to temporary file. This will be handy for Shiny where renderImage requires an "outfile".
+  # magick::image_write(pic, path = tmpfile, format = "jpg")
+  magick::image_write(pic, path = paste0(camera_name,'.jpg'), format = "jpg")
+  
+  return(time)
+}
+
+
+
+## 3. Functions to classify Images ---------------------------------------------------------------------
+
+rescale <- function(dat, mn, mx){
+  m = min(dat)
+  M = max(dat)
+  
+  z <- ((mx-mn)*(dat-m))/((M-m)+mn)
+  return(z)
+}
+
+standardize <- function(img) {
+  s = sd(img)
+  m = mean(img)
+  img = (img - m) / s
+  
+  img =rescale(img, 0, 1)
+  
+  rm(s, m)
+  
+  return(img)
+}
+
+predict_flooding <- function(camera_name){
+  
+  # Reshape to correct dimensions (1, 224, 224, 3)
+  img_array <- keras::image_load(paste0(camera_name,".jpg"),
+                                 target_size = c(224,224)) %>% 
+    keras::image_to_array() %>% 
+    standardize() %>%
+    keras::array_reshape(., c(1, dim(.)))
+  
+  # Model prediction. I think it outputs it as a list, so could convert with a simple "as.numeric()" or "c()"
+  prediction <- model %>% 
+    predict(x = img_array) 
+  
+  as.numeric(prediction)
+}
 
 
 
 
 
 
-## 2. Load NCDOT Images ---------------------------------------------------------------------
 
 
 
 
-
-
-
-## 3. Classify Images ---------------------------------------------------------------------
-
-
-
-
-####_____________________________####
-#  UI ---------------------------------------------------------------------
-
-####__Material UI__####
-ui <- material_page(
-    
-    # # Adjust parallax height
-    # tags$style(type="text/css", 
-    #            ".parallax-container{height:150px}"),
-    
-    # Application title - color details
-    title = "NCDOT FloodCamML", 
-    # include_nav_bar = TRUE,
-    primary_theme_color = "#00695c", 
-    secondary_theme_color = "#00796b",
-    
-    
-    ##### App Description ####
-    material_row(
-        material_column(
-            width = 12,
-            material_card(
-                h2("Outer Banks Nuisance Flooding Detection"),
-                p("This is where I imagine an introduction to the project or instructions for the app might go:"),
-                h5("Detecting Flood Events with Machine Learning:"),
-                p("This application uses live camera feeds from the North Carolina Department of Transportation to and machine-learning 
-                  models to determine when NC motorways are experiencing flooding conditions. The windows below
-                  will display real-time camera images and the determination (flooding/not flooding) from both
-                  a supervised and un-supervised machine learning model.")
+####____________________________________####
+#------------------------ Define UI ---------------------------------------
+ui <- dashboardPage(
+  title = "NC12 Flood CamML", 
+  skin = "black",
+  
+  
+  #####  Header  ####
+  header = dashboardHeader(
+    title =  HTML('
+                <div width="300px">
+                      <i class="fas fa-camera-retro" role="presentation" aria-label="camera icon" style="color:#ffffff;position:absolute;left:25px;top:15px"></i><p style="color:white">NC12 Flood CamML</p>
+                </div>
+                      '),
+    titleWidth = 350),
+  
+  
+  #####  Sidebar  ####
+  sidebar = dashboardSidebar(
+    width = 350,
+    sidebarMenu(
+      id = "nav",
+      
+      #####_ Model 1  ####
+      menuItem("Model 1", tabName = "Model1", icon = icon("robot")),
+      
+      conditionalPanel(
+        condition = "input.nav === 'Model1'",
+        div(style="border-left-style: solid; border-left-width: medium; border-left-color: white;",
+            p("Directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
+            br(),
+            p("More directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
+            
+            div(align="center",
+              actionButton(inputId = "submit", label = "SUBMIT ASSESSMENT", class = "btn btn-success", style="color:white;font-size:12pt,font-weight:bold")
             )
         )
-    ),
-    
-    
-    ##### Flooding Description  ####
-    material_row(
-        
-        material_column(
-            width = 12,
-            # Content Card
-            material_card(
-                h3("What is Nuisance and High Tide Flooding?"),
-                p("During extremely high tides, the sea literally spills onto land in some locations, inundating low-lying areas
-                   with seawater until high tide has passed. Because this flooding causes public inconveniences such as road closures
-                   and overwhelmed storm drains, the events were initially called nuisance flooding.
-                   To help people understand the cause of these events, they are now referred to as high-tide floods."),
-                a(href = "https://toolkit.climate.gov/topics/coastal-flood-risk/shallow-coastal-flooding-nuisance-flooding",
-                  "Source")
+      ), 
+      
+      #####_ Model 2 ####
+      menuItem("Model 2", tabName = "Model2", icon = icon("robot")),
+      
+      conditionalPanel(
+        condition = "input.nav === 'Model2'",
+        div(style="border-left-style: solid; border-left-width: medium; border-left-color: white;",
+            p("Directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
+            br(),
+            p("More directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
+            
+            div(align="center",
+                actionButton(inputId = "submit2", label = "SUBMIT ASSESSMENT", class = "btn btn-success", style="color:white;font-size:12pt,font-weight:bold")
             )
         )
-    ),
-    
-    
-    ####  Define Different Tabs  ####
-    material_tabs(
-        tabs = c(
-            #"Nuisance Flooding"       = "first_tab",
-            "Model 1 Classifications" = "second_tab"#,
-            #"Model 2 Classifications" = "third_tab"#,
-        )
-    ),
-    
-    
-    # ###Tab 1 Content - Background on Flooding  ####
-    # material_tab_content(
-    #     tab_id = "first_tab",
-    # 
-    #     # Content Card
-    #     material_card(
-    #         h3("What is Nuisance and High Tide Flooding?"),
-    #         p("During extremely high tides, the sea literally spills onto land in some locations, inundating low-lying areas
-    #                with seawater until high tide has passed. Because this flooding causes public inconveniences such as road closures
-    #                and overwhelmed storm drains, the events were initially called nuisance flooding.
-    #                To help people understand the cause of these events, they are now referred to as high-tide floods."),
-    #         a(href = "https://toolkit.climate.gov/topics/coastal-flood-risk/shallow-coastal-flooding-nuisance-flooding",
-    #           "Source")
-    #     )
-    # ),
-    
-    
-    
-    
-    #### Tab 2 Content - Model 1 Results  ####
-    material_tab_content(
-        tab_id = "second_tab",
-        
-        ###_ Row 1 ----------------------------------
-        material_row(
-            material_column(
-                width = 6,
-                material_card(
-                    title = "Ocracoke",
-                    plotOutput("cam1_img"),
-                    actionButton(inputId = "m1_cam1_flood", label = "Flooding"),
-                    actionButton(inputId = "m1_cam1_dry", label = "Not-Flooding")
-                )
-            ),
-            material_column(
-                width = 6,
-                material_card(
-                    title = "Mirlo",
-                    plotOutput("cam2_img"),
-                    actionButton(inputId = "m1_cam2_flood", label = "Flooding"),
-                    actionButton(inputId = "m1_cam2_dry", label = "Not-Flooding")
-                )
-            )
-        ),
-        
-        ###_ Row 2 ----------------------------------
-        material_row(
-            material_column(
-                width = 6,
-                material_card(
-                    title = "Hatteras",
-                    plotOutput("cam3_img"),
-                    actionButton(inputId = "m1_cam3_flood", label = "Flooding"),
-                    actionButton(inputId = "m1_cam3_dry", label = "Not-Flooding")
-                )
-            ),
-            material_column(
-                width = 6,
-                material_card(
-                    title = "Buxton",
-                    plotOutput("cam4_img"),
-                    actionButton(inputId = "m1_cam4_flood", label = "Flooding"),
-                    actionButton(inputId = "m1_cam4_dry", label = "Not-Flooding")
-                )
-            )
-        ),
-        
-        ###_ Row 3 ----------------------------------
-        material_row(
-            material_column(
-                width = 6,
-                material_card(
-                    title = "Canal",
-                    plotOutput("cam5_img"),
-                    actionButton(inputId = "m1_cam5_flood", label = "Flooding"),
-                    actionButton(inputId = "m1_cam5_dry", label = "Not-Flooding")
-                )
-            ),
-            material_column(
-                width = 6,
-                material_card(
-                    title = "Avon",
-                    plotOutput("cam6_img"),
-                    actionButton(inputId = "m1_cam6_flood", label = "Flooding"),
-                    actionButton(inputId = "m1_cam6_dry", label = "Not-Flooding")
-                )
-            )
-        )
-    ),
-    
-    
-    
-    
-    #### Tab 3 Content - Model 1 Results  ####
-    
-    # material_tab_content(
-    #     tab_id = "third_tab",
-    # 
-    #     ###_ Row 1 ----------------------------------
-    #     material_row(
-    #         material_column(
-    #             width = 6,
-    #             material_card(
-    #                 title = "Ocracoke",
-    #                 plotOutput("cam1_img"),
-    #                 actionButton(inputId = "m2_cam1_flood", label = "Flooding"),
-    #                 actionButton(inputId = "m2_cam1_dry", label = "Not-Flooding")
-    #             )
-    #         ),
-    #         material_column(
-    #             width = 6,
-    #             material_card(
-    #                 title = "Mirlo",
-    #                 plotOutput("cam2_img"),
-    #                 actionButton(inputId = "m2_cam2_flood", label = "Flooding"),
-    #                 actionButton(inputId = "m2_cam2_dry",   label = "Not-Flooding")
-    #             )
-    #         )
-    #     ),
-    # 
-    #     ###_ Row 2 ----------------------------------
-    #     material_row(
-    #         material_column(
-    #             width = 6,
-    #             material_card(
-    #                 title = "Hatteras",
-    #                 plotOutput("cam3_img"),
-    #                 actionButton(inputId = "m2_cam3_flood", label = "Flooding"),
-    #                 actionButton(inputId = "m2_cam3_dry", label = "Not-Flooding")
-    #             )
-    #         ),
-    #         material_column(
-    #             width = 6,
-    #             material_card(
-    #                 title = "Buxton",
-    #                 plotOutput("cam4_img"),
-    #                 actionButton(inputId = "m2_cam4_flood", label = "Flooding"),
-    #                 actionButton(inputId = "m2_cam4_dry", label = "Not-Flooding")
-    #             )
-    #         )
-    #     ),
-    # 
-    # 
-    #     ###_ Row 3 ----------------------------------
-    #     material_row(
-    #         material_column(
-    #             width = 6,
-    #             material_card(
-    #                 title = "Canal",
-    #                 plotOutput("cam5_img"),
-    #                 actionButton(inputId = "m2_cam5_flood", label = "Flooding"),
-    #                 actionButton(inputId = "m2_cam5_dry", label = "Not-Flooding")
-    #             )
-    #         ),
-    #         material_column(
-    #             width = 6,
-    #             material_card(
-    #                 title = "Avon",
-    #                 plotOutput("cam6_img"),
-    #                 actionButton(inputId = "m2_cam6_flood", label = "Flooding"),
-    #                 actionButton(inputId = "m2_cam6_dry",   label = "Not-Flooding")
-    #             )
-    #         )
-    #     )
-    # ), # Close Tab content 3
-    
-    
-    
-    
-    ## Tail Image ----------------------------------
-    # Image in folder 'www' at same level as app.R
-    material_parallax(
-        # image source: https://obxstuff.com/pages/things-to-do
-        image_source = "outer_banks_aerial.jpeg"
+      ), 
+      
+      menuItem("About", tabName = "About", icon = icon("info-circle")),
+      br()
     )
+  ),
+  
+  #####  Dashboard Body  ####
+  dashboardBody(
+    fluidPage(
+      disconnectMessage(
+        text = "Your session has timed out! Try refreshing the page.",
+        refresh = "Refresh",
+        background = "#FFFFFF",
+        colour = "#000000",##000000
+        refreshColour = "#337AB7",
+        overlayColour = "#000000",
+        overlayOpacity = 0.25,
+        width = 450,
+        top = "center",
+        size = 24,
+        css = ""),
+      shinyjs::useShinyjs(),
+      useShinyalert(),
+      use_waiter(),
+      # waiter::waiter_show_on_load(html = spin_3k(),
+      #                             color = transparent(0)),
+      tags$head(
+                tags$style(HTML('
+        .skin-black .main-header .logo {
+          background-color: #000000;
+          border-right: 1px solid #000000;
+        }
+        .skin-black .main-header .logo:hover {
+          background-color: #000000;
+        }
+        
+        .skin-black .main-header .navbar {
+          background-color: #000000;
+        }
+        
+        .skin-black .main-header .navbar>.sidebar-toggle {
+          color: #FFFFFF;
+          border-right: 1px solid #000000;
+        }
+        
+        .skin-black .main-header .navbar .sidebar-toggle:hover {
+          color: #fff;
+          background: #000;
+        }
+        
+        # .main-header .sidebar-toggle {
+        #   font-weight: 200; 
+        # }
+                                
+        .nav-tabs-custom .nav-tabs li.active {
+          border-top-color: black;
+        }
+          
+      '))),
+      
+      ##### Tab Items  ####
+      tabItems(
+        
+        
+        ###### Model 1 ####
+        tabItem(tabName = "Model1",
+                fluidRow(
+                  
+                  ######_ Prediction Key  ####
+                  box(solidHeader = T,
+                      column(width=6,
+                        h2("Model predictions"),
+                        h4(icon("circle",style="color:#dd4b39;font-size:16;border-color:black;"), "Flooding"),
+                        h4(icon("circle",style="color:#f39c12;font-size:16;border-color:black;"), "Unsure"),
+                        h4(icon("circle",style="color:#00a65a;font-size:16;border-color:black;"), "No Flooding")
+                      ),
+                      column(width=6,
+                             h3("Help us validate, click 'Flooding' or 'No Flooding'")
+                             )
+                  ),
+                  
+                  ######_ Latest Conditions  ####
+                  box(solidHeader = T,
+                    h1("Latest conditions")
+                  )
+                ),
+                
+                ######_ Mod 1 Cams  ####
+                fluidRow(
+                  
+                  # Mirlo
+                  column(width=6,
+                         uiOutput(outputId = "mirlo_selection")),
+                  
+                  # NorthDock
+                  column(width=6,
+                         uiOutput(outputId = "northdock_selection"))
+                  ),
+                
+                # Second Row
+                fluidRow(
+                  
+                  # Tester for "Danger"
+                  column(width=6,
+                         uiOutput(outputId = "southdock_selection")),
+                  
+                  # Test Box 
+                  column(width=6,
+                         uiOutput(outputId = "southocracoke_selection"))
+                  )
+                
+        ), 
+        
+        
+        ###### Model 2 ####
+        # Tab showing selected data and time series graphs
+        tabItem(tabName = "Model2",
+                
+                #####_ Mod 2 Cams  ####
+                fluidRow(
+                  column(width=6,
+                         uiOutput(outputId = "mirlo_selection_unsupervised")
+                  ),
+                  
+                  column(width=6,
+                         uiOutput(outputId = "northdock_selection_unsupervised")
+                  )
+                ),
+                
+                fluidRow(
+                  column(width=6,
+                         uiOutput(outputId = "southdock_selection_unsupervised")
+                  ),
+                  column(width=6,
+                         uiOutput(outputId = "southocracoke_selection_unsupervised")
+                  )
+                )
+                
+        ),
+        tabItem(tabName = "About",
+                fluidRow(
+                  h1("NC12 Flood CamML"),
+                  p("About...")
+                )
+        )
+        )
+    )
+  )
 )
 
 
@@ -288,85 +340,561 @@ ui <- material_page(
 
 
 
-####_____________________________####
 
-# SERVER ---------------------------------------------------------------------
-server <- function(input, output) {
 
+####_______________________________####
+####  Server  ####
+
+# Define server logic required to draw a histogram
+server <- function(input, output, session) {
+  
+  # Popup on load to display info
+  shinyalert(title = "Welcome to the NC12 Flood CamML!",
+             text = "View real-time images of NC12 to check for flooding.... \n\n Images and information are preliminary and for informational purposes only",
+             closeOnClickOutside = FALSE,
+             showConfirmButton = T,
+             confirmButtonText = "OK",
+             type = "info",
+             animation=F,
+             size = "s",
+             inputId = "splash_page")
+  
+  
+  
+  
+  
+  
+  
+  #-------------- Reactive Value Holders -------------
+  # These capture user inputs for later
+  
+  # feedback on model 1
+  button_info_model1 <- reactiveValues(mirlo_button_info = NULL, 
+                                       northdock_button_info = NULL,
+                                       southdock_button_info = NULL,
+                                       southocracoke_button_info = NULL)
+  
+  # feedback on model 2
+  button_info_model2 <- reactiveValues(mirlo_button_info = NULL, 
+                                       northdock_button_info = NULL,
+                                       southdock_button_info = NULL,
+                                       southocracoke_button_info = NULL)
+  
+  
+  # Print values as error check
+  observe({
+    print(button_info_model1$mirlo_button_info)
+    print(button_info_model1$northdock_button_info)
+    print(button_info_model1$southdock_button_info)
+    print(button_info_model1$southocracoke_button_info)
     
-    ####  Model 1 Classifications  ####
-    
-    #####_  Mod 1 - Pic 1  ####
-    output$cam1_img <- renderPlot({
-        plot(faithful)
-    })
+  })
+  
+  
+  
+  ####____________________________####
+  ####__  Supervised Model Displays __####
 
+  #--------------- Get Cam Images ----------------------
+  
+  
+  # Get Traffic Cam Images
+  
+  # Function to Apply to Each Camera
+  get_cam <- function(cam_name){
+    reactive({
+      invalidateLater(millis = 5*60*1000, session = session)
+      get_traffic_cam(cam_name)
+    })
+  }
+  
+  # Run Each Camera
+  mirlo_time_reactive <- get_cam("Mirlo")
+  northdock_time_reactive <- get_cam("NorthDock")
+  southdock_time_reactive <- get_cam("SouthDock")
+  southocracoke_time_reactive <- get_cam("SouthOcracoke")
+  
+  
+  
+  
+  
+  
+  #--------------- Model 1. Results ----------------------
+  
+  # Get Predictions
+  
+  mirlo_predict <- reactive({
+    # code to predict. 
+    predict_flooding("Mirlo")
+  })
+  
+  northdock_predict <- reactive({
+    predict_flooding("NorthDock")
+  })
+  
+  southdock_predict <- reactive({
+    predict_flooding("SouthDock")
+  })
+  
+  southocracoke_predict <- reactive({
+    predict_flooding("SouthOcracoke")
+  })
+  
+  
+  #--------------- Display Camera Feeds ----------------------
+  
+  
+  # Initialize wait screen for individual pics. Need one of these for each site
+  w <- Waiter$new(id = "mirlo_selection",
+                  html = spin_3k(),
+                  color = transparent(.75))
+  
+  w2 <- Waiter$new(id = "northdock_selection",
+                   html = spin_3k(),
+                   color = transparent(.75))
+  
+  w3 <- Waiter$new(id = "southdock_selection",
+                   html = spin_3k(),
+                   color = transparent(.75))
+  
+  w4 <- Waiter$new(id = "southocracoke_selection",
+                   html = spin_3k(),
+                   color = transparent(.75))
+  
+  
+  # 1. Build UI for Camera Image Displays
+  
+  # Function to apply to each
+  render_cam_image <- function(cam_name, alt_name){
+    out_image <- renderImage({
+      outfile <- str_c(cam_name, ".jpg")
+      list(src = outfile,
+           alt = alt_name,
+           width = "100%"#, height="180px"
+      )
+    }, deleteFile=F)
     
-    #####_  Mod 1 - Pic 2  ####
-    output$cam2_img <- renderPlot({
-        plot(airmiles)
+    return(out_image)
+  }
+  
+  # Run Each Camera
+  output$mirlo_picture <- render_cam_image(cam_name = "Mirlo", alt_name = "Mirlo Beach")
+  output$northdock_picture <- render_cam_image(cam_name = "Northdock", alt_name = "NorthDock")
+  output$southdock_picture <- render_cam_image(cam_name = "SouthDock", alt_name = "SouthDock")
+  output$southocracoke_picture <- render_cam_image(cam_name = "SouthOcracoke", alt_name = "SouthOcracoke")
+  
+  
+  
+  
+  
+  #--------------- Camera Feedback UI ----------------------
+  
+  # 2. Display for image box / model classification
+  
+  # Function to apply to each
+  # takes the camera name, the reactive time, and the model predictions
+  render_camera_ui <- function(cam_name, cam_time, model_prediction, id_suffix = ""){
+    
+    # string prep for naming patterns for UI elements
+    # option to add suffix for "_unsupervised" ui elements
+    name_lcase <- tolower(cam_name)
+    img_output_id <- str_c(name_lcase, "_picture", id_suffix)
+    radio_button_id <- str_c(name_lcase, "_button_select", id_suffix)
+    button_clear <- str_c(name_lcase, "_clear", id_suffix)
+    
+    # UI generation for radio buttons
+    camera_button_ui <- renderUI({
+      w$show()
+      box(width="100%",
+          # height=300,
+          solidHeader = T,
+          status = "success", #ifelse(model_prediction >= 0.6, "danger", ifelse(model_prediction <0.6 & model_prediction >=0.4, "warning", "success"))
+          title  = cam_name,
+          align  = "center",
+          # Display Cam Image
+          imageOutput(img_output_id,
+                      height="100%"),
+          # Datetime for image
+          p(paste0(cam_time %>% lubridate::with_tz("America/New_York"), " EDT/EST")),
+          # Inline boxes for user feedback
+          div(style="display:inline-block",
+              shinyWidgets::radioGroupButtons(inputId = radio_button_id, 
+                                              choiceNames = c("Flooding", "Not Sure", "No Flooding"), 
+                                              choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                                              justified = F, 
+                                              selected = character(0), 
+                                              checkIcon = list(yes = icon("ok",lib="glyphicon")))
+          ),
+          
+          # clear selection button
+          div(style="display:inline-block",
+              actionButton(inputId = button_clear, 
+                           label = "Clear", 
+                           class = "btn btn-primary", 
+                           style = "font-size:10pt;color:white")
+          )
+      )
     })
     
-    
-    #####_  Mod 1 - Pic 3  ####
-    output$cam3_img <- renderPlot({
-        plot(faithful)
-    })
-
-    #####_  Mod 1 - Pic 4  ####
-    output$cam4_img <- renderPlot({
-        plot(airmiles)
-    })
-    
-    #####_  Mod 1 - Pic 5  ####
-    output$cam5_img <- renderPlot({
-        plot(airmiles)
-    })
-
-    #####_  Mod 1 - Pic 6  ####
-    output$cam6_img <- renderPlot({
-        plot(airmiles)
-    })
+    #return the UI
+    return(camera_button_ui)
     
     
-    ####  Model 2 Classifications  ####
+  }
+  
+  # Apply to each camera
+  output$mirlo_selection <- render_camera_ui(cam_name = "Mirlo", 
+                                             cam_time = mirlo_time_reactive(),
+                                             model_prediction = mirlo_predict())
+  output$northdock_selection <- render_camera_ui(cam_name = "NorthDock", 
+                                                 cam_time = northdock_time_reactive(),
+                                                 model_prediction = northdock_predict())
+  output$southdock_selection <- render_camera_ui(cam_name = "SouthDock", 
+                                                 cam_time = southdock_time_reactive(),
+                                                 model_prediction = southdock_predict())
+  output$southocracoke_selection <- render_camera_ui(cam_name = "SouthOcracoke", 
+                                                     cam_time = southocracoke_time_reactive(),
+                                                     model_prediction = southocracoke_predict())
+ 
+  
+  
+  
+  ####____________________________####
+  ####__  Un-Supervised Model Displays __####
+  #------------------ Get Cam Images  ----------------
+  
+  # 1. reset timer for images
+  mirlo_time_reactive_unsupervised         <- get_cam("Mirlo")
+  northdock_time_reactive_unsupervised     <- get_cam("NorthDock")
+  southdock_time_reactive_unsupervised     <- get_cam("SouthDock")
+  southocracoke_time_reactive_unsupervised <- get_cam("SouthOcracoke")
+  
+ 
+  
+  #--------------- Model 2. Results ----------------------
+  
+  # 2. Code to predict flood/not flood from model
+  mirlo_predict_unsupervised <- reactive({
+    # code to predict. Can use "Mirlo.jpg" as path for keras code
+  })
+  northdock_predict_unsupervised <- reactive({
+    # code to predict. 
+  })
+  southdock_predict_unsupervised <- reactive({
+    # code to predict. 
+  })
+  southocracoke_predict_unsupervised <- reactive({
+    # code to predict. 
+  })
+  
+  
+  #--------------- Display Camera Feeds ----------------------
+  
+  
+  # Initialize wait screen for individual pics. Need one of these for each site
+  w <- Waiter$new(id = "mirlo_selection_unsupervised",
+                  html = spin_3k(),
+                  color = transparent(.75))
+  
+  
+  # Render camera images
+  output$mirlo_picture_unsupervised <- render_cam_image(cam_name = "Mirlo", alt_name = "Mirlo Beach")
+  output$northdock_picture_unsupervised <- render_cam_image(cam_name = "NorthDock", alt_name = "NorthDock")
+  output$southdock_picture_unsupervised <- render_cam_image(cam_name = "SouthDock", alt_name = "SouthDock")
+  output$southocracoke_picture_unsupervised <- render_cam_image(cam_name = "SouthOcracoke", alt_name = "SouthOcracoke")
+
+  
+  
+  #--------------- Camera Feedback UI ----------------------
+  
+  # Display model classification around pictures
+  # Apply model prediction and radio buttons to each camera
+  output$mirlo_selection_unsupervised <- render_camera_ui(cam_name = "Mirlo", 
+                                                          cam_time = mirlo_time_reactive_unsupervised(),
+                                                          model_prediction = mirlo_predict_unsupervised(),
+                                                          id_suffix = "_unsupervised")
+  output$northdock_selection_unsupervised <- render_camera_ui(cam_name = "NorthDock", 
+                                                              cam_time = northdock_time_reactive_unsupervised(),
+                                                              model_prediction = northdock_predict_unsupervised(),
+                                                              id_suffix = "_unsupervised")
+  output$southdock_selection_unsupervised <- render_camera_ui(cam_name = "SouthDock", 
+                                                              cam_time = southdock_time_reactive_unsupervised(),
+                                                              model_prediction = southdock_predict_unsupervised(),
+                                                              id_suffix = "_unsupervised")
+  output$southocracoke_selection_unsupervised <- render_camera_ui(cam_name = "SouthOcracoke", 
+                                                                  cam_time = southocracoke_time_reactive_unsupervised(),
+                                                                  model_prediction = southocracoke_predict_unsupervised(),
+                                                                  id_suffix = "_unsupervised")
+  
+  
+  
+  ####____________________________####
+  ####__  User Data Collection  __####
+  
+  
+  #------------------ Reactive reset buttons ----------------
+  
+  #####__ 1. Reset supervised buttons  ####
+  
+  # Mirlo
+  observeEvent(input$mirlo_clear ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "mirlo_button_select",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  
+  
+  # NorthDock
+  observeEvent(input$northdock_clear ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "northdock_button_select",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  
+  
+  # SouthDock
+  observeEvent(input$southdock_clear ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "southdock_button_select",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  
+  # SouthOcracoke
+  observeEvent(input$southocracoke_clear ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "southocracoke_button_select",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  
+  
+  
+  
+  #####__ 2. Reset unsupervised buttons  ####
+  
+  # Mirlo
+  observeEvent(input$mirlo_clear_unsupervised ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "mirlo_button_select_unsupervised",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  # NorthDock
+  observeEvent(input$northdock_clear_unsupervised ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "northdock_button_select_unsupervised",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  
+  # SouthDock
+  observeEvent(input$southdock_clear_unsupervised ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "southdock_button_select_unsupervised",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  
+  # SouthOcracoke
+  observeEvent(input$southocracoke_clear_unsupervised ,{
+    updateRadioGroupButtons(session = session,
+                            inputId = "southocracoke_button_select_unsupervised",
+                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
+                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                            selected = character(0), 
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+  })
+  
+  ###########  Reactive Button Info #######################
+  
+  # Need reactive code to update button values for both supervised and unsupervised
+  # I made a reactive value list above to store the value: 
+  # button_info_model1$mirlo_button_info 
+  # button_info_model2$mirlo_button_info 
+  
+  # That code looked like this
+  # button_info_model1 <- reactiveValues(mirlo_button_info = NULL)
+  # button_info_model2 <- reactiveValues(mirlo_button_info = NULL)
+  
+  # Input ID's are:
+  # inputId = "mirlo_button_select",
+  # inputId = "mirlo_button_select_unsupervised",
+  
+  observeEvent(c(input$mirlo_button_select, input$mirlo_clear), {
+    button_info_model1$mirlo_button_info <- input$mirlo_button_select
+  })
+  
+  observeEvent(c(input$northdock_button_select, input$northdock_clear), {
+    button_info_model1$northdock_button_info <- input$northdock_button_select
+  })
+  
+  observeEvent(c(input$southdock_button_select, input$southdock_clear), {
+    button_info_model1$southdock_button_info <- input$southdock_button_select
+  })
+  
+  observeEvent(c(input$southocracoke_button_select, input$southocracoke_clear), {
+    button_info_model1$southocracoke_button_info <- input$southocracoke_button_select
+  })
+  
+  
+  
+  #------------------- Submit button for model 1 -------------------
+  
+  # 1. Observe the user submission
+  observeEvent(input$submit,{
     
-    #####_  Mod 2 - Pic 1  ####
-    output$cam1_img <- renderPlot({
-        plot(mtcars)
-    })
+    shinyalert(
+      inputId = "shinyalert",
+      title = "Submit?",
+      text = "Are you ready to submit your answers?",
+      size = "s",
+      closeOnEsc = FALSE,
+      closeOnClickOutside = FALSE,
+      html = FALSE,
+      type = "warning",
+      showConfirmButton = TRUE,
+      showCancelButton = TRUE,
+      confirmButtonText = "Yes",
+      confirmButtonCol = "#AEDEF4",
+      cancelButtonText = "No",
+      timer = 0,
+      imageUrl = "",
+      animation = TRUE
+    )
+  })
+  
+  
+  # 2. Put user data into table, push to google sheets:
+  # Final submission for model 1 (tab 1)
+  observeEvent(input$shinyalert ==T,{
+    req(input$shinyalert)
 
-
-    #####_  Mod 2 - Pic 2  ####
-    output$cam2_img <- renderPlot({
-        plot(iris)
-    })
-
-
-    #####_  Mod 2 - Pic 3  ####
-    output$cam3_img <- renderPlot({
-        plot(faithful)
-    })
-
-    #####_  Mod 2 - Pic 4  ####
-    output$cam4_img <- renderPlot({
-        plot(airmiles)
-    })
-
-    #####_  Mod 2 - Pic 5  ####
-    output$cam5_img <- renderPlot({
-        plot(airmiles)
-    })
-
-    #####_  Mod 2 - Pic 6  ####
-    output$cam6_img <- renderPlot({
-        plot(airmiles)
-    })
+    # Change button to "submitted"
+    updateActionButton(session = session,
+                       inputId = "submit",
+                       label = "SUBMITTED!", 
+                       icon = icon("ok", lib = "glyphicon"))
+    
+    # disables submit button
+    shinyjs::disable("submit")
+    
+    ######  Supervised Model Feedback  ####
     
     
+    # Function to pull relevant camera data from models and feedback
+    store_cam_data <- function(cam_name, cam_time, model_prediction, button_response){
+      cam_data <- tibble(
+        "date"          = c(cam_time),
+        "location"      = c(cam_name),
+        "filename"      = str_c(cam_name, ".jpg"), #change to whatever it ends up being
+        "model_type"    = "supervised",
+        "model_score"   = 0.3, # model_prediction
+        "model_class"   = "No Flooding",#ifelse(model_prediction >= 0.5, "Flooding","No Flooding"),
+        "user_response" = button_response
+      )
+    }
+    
+    # Grab the data from the different cams
+    mirlo_data <- store_cam_data(cam_name = "Mirlo", 
+                                 model_prediction = mirlo_predict(), 
+                                 button_response = button_info_model1$mirlo_button_info)
+    northdock_data <- store_cam_data(cam_name = "NorthDock", 
+                                 model_prediction = northdock_predict(), 
+                                 button_response = button_info_model1$northdock_button_info)
+    southdock_data <- store_cam_data(cam_name = "SouthDock", 
+                                 model_prediction = southdock_predict(), 
+                                 button_response = button_info_model1$southdock_button_info)
+    southocracoke_data <- store_cam_data(cam_name = "SouthOcracoke", 
+                                 model_prediction = southocracoke_predict(), 
+                                 button_response = button_info_model1$southocracoke_button_info)
+    
+    
+    # Join them into one table
+    data <- bind_rows(mirlo_data, northdock_data, southdock_data, southocracoke_data)
+    
+    # Append data to google sheet
+    suppressMessages(googlesheets4::sheet_append(ss = sheets_ID,
+                                                 data = data))
+    
+  })
+  
+  #------------------- Submit button for model 2 -------------------
+  
+  observeEvent(input$submit2,{
+    
+    shinyalert(
+      inputId = "shinyalert2",
+      title = "Submit?",
+      text = "Are you ready to submit your answers?",
+      size = "s",
+      closeOnEsc = FALSE,
+      closeOnClickOutside = FALSE,
+      html = FALSE,
+      type = "warning",
+      showConfirmButton = TRUE,
+      showCancelButton = TRUE,
+      confirmButtonText = "Yes",
+      confirmButtonCol = "#AEDEF4",
+      cancelButtonText = "No",
+      timer = 0,
+      imageUrl = "",
+      animation = TRUE
+    )
+  })
+  
+  # Final submission for model 2 (tab 2)
+  observeEvent(input$shinyalert2 ==T,{
+    req(input$shinyalert2)
+    
+    updateActionButton(session = session,
+                       inputId = "submit2",
+                       label = "SUBMITTED!", 
+                       icon = icon("ok",lib = "glyphicon"))
+    
+    shinyjs::disable("submit2")
+    
+    # Data for unsupervised model submissions
+    data <- tibble(
+      "date" = c(mirlo_time_reactive_unsupervised()),
+      "location" = c("Mirlo"),
+      "filename" = c("mirlo_filename.jpg"), #change to whatever it ends up being
+      "model_type" = "unsupervised",
+      "model_score" = 0.3, # mirlo_predict_unsupervised()
+      "model_class" = "No Flooding", #ifelse(mirlo_predict_unsupervised() >= 0.5, "Flooding","No Flooding"),
+      "user_response" = button_info_model2$mirlo_button_info
+    )
+    
+    # Append data to google sheet
+    suppressMessages(googlesheets4::sheet_append(ss = sheets_ID,
+                                                 data = data))
+    
+  })
     
 }
 
-
-# Run the Application
+# Run the application
 shinyApp(ui = ui, server = server)
