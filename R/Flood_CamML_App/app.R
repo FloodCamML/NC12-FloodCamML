@@ -1,4 +1,7 @@
-# Packages to load
+
+
+
+####  Packages  ####
 library(dplyr)
 library(lubridate)
 library(shiny)
@@ -13,22 +16,37 @@ library(httr)
 library(shinyWidgets)
 library(googledrive)
 library(googlesheets4)
+library(keras)
 
 
-# Google auth
-source("./google_keys.R")
+####  Python Paths  ####
 
-sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
-API_KEY   <- Sys.getenv("GOOGLE_API_KEY")
+# Python Path for Publishing to shinyapps.io
+# Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
 
-googledrive::drive_auth_configure(api_key = API_KEY)
+# Adam G's python path
+# Sys.setenv(RETICULATE_PYTHON = 'C:/python39')
+
+# Adam K's python path
+reticulate::use_condaenv(condaenv = "py36")
+
+####  Google Auth  ####
+
+# Keys for Google Auth
+# source("./R/Flood_CamML_App/google_keys.R") # testing
+source("./google_keys.R") # publishing
+
+# load google authentications
+folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
+google_json_path <- Sys.getenv("GOOGLE_JSON_PATH")
+
+googledrive::drive_auth(path = google_json_path)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
-
 
 ## 1. Load Models ---------------------------------------------------------------------
 
-#model <- keras::load_model_tf("C:/GitHub/FloodCamMLShiny/R/Flood_CamML_App/ml/supervised")
-
+# Path to model within Github folder
+model <- keras::load_model_tf("./ml/supervised")
 
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
@@ -67,7 +85,41 @@ get_traffic_cam <- function(camera_name){
 
 ## 3. Functions to classify Images ---------------------------------------------------------------------
 
+rescale <- function(dat, mn, mx){
+  m = min(dat)
+  M = max(dat)
+  
+  z <- ((mx-mn)*(dat-m))/((M-m)+mn)
+  return(z)
+}
 
+standardize <- function(img) {
+  s = sd(img)
+  m = mean(img)
+  img = (img - m) / s
+  
+  img =rescale(img, 0, 1)
+  
+  rm(s, m)
+  
+  return(img)
+}
+
+predict_flooding <- function(camera_name){
+  
+  # Reshape to correct dimensions (1, 224, 224, 3)
+  img_array <- keras::image_load(paste0(camera_name,".jpg"),
+                                 target_size = c(224,224)) %>% 
+    keras::image_to_array() %>% 
+    standardize() %>%
+    keras::array_reshape(., c(1, dim(.)))
+  
+  # Model prediction. I think it outputs it as a list, so could convert with a simple "as.numeric()" or "c()"
+  prediction <- model %>% 
+    predict(x = img_array) 
+  
+  as.numeric(prediction)
+}
 
 
 
@@ -372,19 +424,20 @@ server <- function(input, output, session) {
   # Get Predictions
   
   mirlo_predict <- reactive({
-    # code to predict. Can use "Mirlo.jpg" as path for keras code
+    # code to predict. 
+    predict_flooding("Mirlo")
   })
   
   northdock_predict <- reactive({
-    # code to predict. Can use "Mirlo.jpg" as path for keras code
+    predict_flooding("NorthDock")
   })
   
   southdock_predict <- reactive({
-    # code to predict. Can use "Mirlo.jpg" as path for keras code
+    predict_flooding("SouthDock")
   })
   
   southocracoke_predict <- reactive({
-    # code to predict. Can use "Mirlo.jpg" as path for keras code
+    predict_flooding("SouthOcracoke")
   })
   
   
@@ -395,6 +448,18 @@ server <- function(input, output, session) {
   w <- Waiter$new(id = "mirlo_selection",
                   html = spin_3k(),
                   color = transparent(.75))
+  
+  w2 <- Waiter$new(id = "northdock_selection",
+                   html = spin_3k(),
+                   color = transparent(.75))
+  
+  w3 <- Waiter$new(id = "southdock_selection",
+                   html = spin_3k(),
+                   color = transparent(.75))
+  
+  w4 <- Waiter$new(id = "southocracoke_selection",
+                   html = spin_3k(),
+                   color = transparent(.75))
   
   
   # 1. Build UI for Camera Image Displays
