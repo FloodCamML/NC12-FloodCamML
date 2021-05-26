@@ -28,12 +28,14 @@ nc_station <- station_df %>%
 
 ## Hi/lo tide data from Oregon Inlet gauge
 
-OregonInlet_Tides <- query_coops_data('8652587',
-                                      '20210520',
-                                      '20210520',
-                                      'predictions',
-                                      interval = 'hilo',
-                                      datum = 'MLLW')
+OregonInlet_Tides <- noaaoceans::query_coops_data(
+  station_id = '8652587',
+  start_date = format(Sys.Date(),"%Y%m%d"),
+  end_date = format(Sys.Date()+1,"%Y%m%d"),
+  data_product = 'predictions',
+  interval = 'hilo',
+  datum = 'MLLW'
+)
 
 ## Try (and fail) to write a function which uses this query_coops_function to pull the hi/lo tide data for the day.
 
@@ -47,16 +49,19 @@ date <- gsub("-", "", date) #Getting date in the format needed by query_coops_da
 ## Trying to feed in the formatted System Date rather than a string of numbers as above.
 ## Not working - package really just wants to see yyyymmdd format, won't accept something representing it.
 
-time_to_tide <- function(location) {
+get_tides <- function(location) {
   if(location == "Oregon Inlet") {
-    query_coops_data('8654467',
-                     start_date=as.character(Sys.Date()),
-                     end_date=as.character(Sys.Date()),
-                     'predictions',
-                     interval = 'hilo',
-                     datum = 'MLLW')
+    noaaoceans::query_coops_data(
+      station_id = '8652587',
+      start_date = format(Sys.Date(),"%Y%m%d"),
+      end_date = format(Sys.Date(),"%Y%m%d"),
+      data_product = 'predictions',
+      units="english",
+      time_zone = "lst_ldt",
+      interval = 'hilo',
+      datum = 'MLLW'
+    )
   }
-  
 }
 
 
@@ -79,7 +84,7 @@ get_tides <- function(location) {
           "time_zone" = "lst",
           "format" = "json",
           "date"="today",
-          "interval"="hilo"
+          "interval"="hilo",
           "application" = "UNC_Institute_for_the_Environment, https://github.com/acgold"
         )
       )
