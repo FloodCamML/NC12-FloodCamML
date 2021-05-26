@@ -20,6 +20,7 @@ library(keras)
 library(purrr)
 
 
+
 ####  Python Paths  ####
 
 # Python Path for Publishing to shinyapps.io
@@ -89,6 +90,29 @@ write_traffic_cam <- function(camera_name, cam_time) {
     path = as_id(folder_ID),
     name =  paste0(camera_name, "_", cam_time, ".jpg")
   ))
+}
+
+get_tides <- function(location) {
+  if (location == "Oregon Inlet") {
+    df <- noaaoceans::query_coops_data(
+      station_id = '8652587',
+      start_date = format(Sys.Date(), "%Y%m%d"),
+      end_date = format(Sys.Date()+1, "%Y%m%d"),
+      data_product = 'predictions',
+      units = "english",
+      time_zone = "lst_ldt",
+      interval = 'hilo',
+      datum = 'MLLW'
+    )
+    
+    df <- df %>% 
+      mutate(t = lubridate::ymd_hm(t)) %>% 
+      dplyr::select(-station)
+    
+    colnames(df) <- c("Time","Tide Height (ft)", "Type")
+    
+    return(df)
+  }
 }
 
 ## 3. Functions to classify Images ---------------------------------------------------------------------
@@ -262,6 +286,7 @@ ui <- dashboardPage(
                   
                   ######_ Prediction Key  ####
                   box(solidHeader = T,
+                      height = "200px",
                       column(width=6,
                              h2("Model predictions"),
                              tippy::tippy(span(class="badge","Flooding",style="background-color:#dd4b39;"),h4("This means that the model is more than ", strong("60%")," sure that there is water on the road")),
@@ -275,7 +300,12 @@ ui <- dashboardPage(
                   
                   ######_ Latest Conditions  ####
                   box(solidHeader = T,
-                    h1("Latest conditions")
+                      height = "200px",
+                    # h2("Latest conditions"),
+                    div(style="display: flex;justify-content: space-around;align-items: center;flex-direction: row;",
+                    uiOutput("next_tide_label"),
+                    tableOutput("latest_tides")
+                    )
                   )
                 ),
                 
@@ -367,7 +397,31 @@ server <- function(input, output, session) {
              size = "s",
              inputId = "splash_page")
   
+  #-------------------- Get local data ---------------
+  tides <- get_tides("Oregon Inlet")
   
+  todays_tides <- tides %>% 
+    filter(as.Date(Time) == Sys.Date())
+  
+  next_tide <- tides %>% 
+    filter(Time > Sys.time()) %>% 
+    arrange(Time) %>% 
+    slice(1) 
+  
+  output$latest_tides <- renderTable({
+     todays_tides %>% 
+      mutate(Time = str_remove(format(Time, "%I:%M %p"), "^0+"))
+  })
+  
+  output$next_tide_label <- renderUI({
+    tide_label <- next_tide %>% 
+      mutate(Time = ifelse(as.Date(Time) == Sys.Date(), paste0("Today at ", format(Time, "%I:%M %p")), paste0("Tomorrow at ", format(Time, "%I:%M %p")))) %>% 
+      mutate(Type = ifelse(Type == "H", "High", "Low"))
+    
+    h4("Next tide:",br(),strong(tide_label$Time),br(),tide_label$Type)
+    
+  })
+
   #-------------- Reactive Value Holders -------------
   # These capture user inputs for later
   
