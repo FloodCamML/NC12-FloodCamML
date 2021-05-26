@@ -39,6 +39,7 @@ source("./google_keys.R") # publishing
 
 # load google authentications
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
+sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 google_json_path <- Sys.getenv("GOOGLE_JSON_PATH")
 
 googledrive::drive_auth(path = google_json_path)
