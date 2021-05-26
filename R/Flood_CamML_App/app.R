@@ -18,7 +18,7 @@ library(googledrive)
 library(googlesheets4)
 library(keras)
 library(purrr)
-
+library(noaaoceans)
 
 
 ####  Python Paths  ####
