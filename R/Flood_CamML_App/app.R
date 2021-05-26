@@ -17,6 +17,7 @@ library(shinyWidgets)
 library(googledrive)
 library(googlesheets4)
 library(keras)
+library(purrr)
 
 
 ####  Python Paths  ####
@@ -81,7 +82,13 @@ get_traffic_cam <- function(camera_name){
   return(time)
 }
 
-
+write_traffic_cam <- function(camera_name, cam_time) {
+  suppressMessages(googledrive::drive_upload(
+    media =  paste0(camera_name, ".jpg"),
+    path = as_id(folder_ID),
+    name =  paste0(camera_name, "_", cam_time, ".jpg")
+  ))
+}
 
 ## 3. Functions to classify Images ---------------------------------------------------------------------
 
@@ -845,7 +852,7 @@ server <- function(input, output, session) {
       cam_data <- tibble(
         "date"          = c(cam_time),
         "location"      = c(cam_name),
-        "filename"      = str_c(cam_name, ".jpg"), #change to whatever it ends up being
+        "filename"      = str_c(cam_name,"_",cam_time,".jpg"), 
         "model_type"    = "supervised",
         "model_score"   = model_prediction,
         "model_class"   = ifelse(model_prediction > 0.6, "Flooding",
@@ -879,6 +886,8 @@ server <- function(input, output, session) {
     # Append data to google sheet
     suppressMessages(googlesheets4::sheet_append(ss = sheets_ID,
                                                  data = data))
+    
+    purrr::map2(data$location, data$date, write_traffic_cam)
     
   })
   
