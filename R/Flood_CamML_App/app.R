@@ -93,27 +93,33 @@ write_traffic_cam <- function(camera_name, cam_time) {
 }
 
 get_tides <- function(location) {
-  if (location == "Oregon Inlet") {
-    df <- noaaoceans::query_coops_data(
-      station_id = '8652587',
-      start_date = format(Sys.Date(), "%Y%m%d"),
-      end_date = format(Sys.Date()+1, "%Y%m%d"),
-      data_product = 'predictions',
-      units = "english",
-      time_zone = "lst_ldt",
-      interval = 'hilo',
-      datum = 'MLLW'
-    )
-    
-    df <- df %>% 
-      mutate(t = lubridate::ymd_hm(t)) %>% 
-      dplyr::select(-station)
-    
-    colnames(df) <- c("Time","Tide Height (ft)", "Type")
-    
-    return(df)
+
+  if(location == "Oregon Inlet Marina") {
+    station_id <- '8652587'
   }
+  if(location == "USCG Hatteras") {
+    station_id <- '8654467'
+  }
+
+  df <- noaaoceans::query_coops_data(
+    station_id,
+    start_date = format(Sys.Date(), "%Y%m%d"),
+    end_date = format(Sys.Date()+1, "%Y%m%d"),
+    'predictions',
+    units = "english",  # feet
+    time_zone = "lst_ldt",
+    interval = 'hilo',
+    datum = 'MLLW')  # alternatively, 'MHW'
+
+  df <- df %>%
+    mutate(t = lubridate::ymd_hm(t)) %>%
+    dplyr::select(-station)
+    
+  colnames(df) <- c("Time","Predicted tide (ft MLLW)", "Type")
+    
+  return(df)
 }
+
 
 ## 3. Functions to classify Images ---------------------------------------------------------------------
 
@@ -398,7 +404,7 @@ server <- function(input, output, session) {
              inputId = "splash_page")
   
   #-------------------- Get local data ---------------
-  tides <- get_tides("Oregon Inlet")
+  tides <- get_tides("Oregon Inlet Marina")
   
   todays_tides <- tides %>% 
     filter(as.Date(Time) == Sys.Date())
