@@ -30,6 +30,8 @@ library(keras)
 # Adam K's python path
 reticulate::use_condaenv(condaenv = "py36")
 
+
+
 ####  Google Auth  ####
 
 # Keys for Google Auth
@@ -40,8 +42,10 @@ source("./google_keys.R") # publishing
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 google_json_path <- Sys.getenv("GOOGLE_JSON_PATH")
 
-googledrive::drive_auth(path = google_json_path)
+# Set configurations
+googledrive::drive_auth(path = google_json_path,)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
+
 
 ## 1. Load Models ---------------------------------------------------------------------
 
