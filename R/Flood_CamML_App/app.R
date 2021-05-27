@@ -51,13 +51,13 @@ googlesheets4::gs4_auth(token = googledrive::drive_token())
 # Path to model within Github folder
 
 # Best model
-model1 <- keras::load_model_tf("./ml/Rmodel")
+model1 <- keras::load_model_tf("./ml/Rmodel_5_27_2021")
 
 # Old from scratch model for testing. 
 # Can uncomment for local testing, but memory runs out of shinyapps.io
 # If uncommented, change the selectInput choices for "input$model_number"
 
-# model2 <- keras::load_model_tf("./ml/Rmodel-v3")
+# model2 <- keras::load_model_tf("./ml/Rmodel_5_25_2021")
 
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
