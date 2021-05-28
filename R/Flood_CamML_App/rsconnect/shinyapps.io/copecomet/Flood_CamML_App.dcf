@@ -1,0 +1,14 @@
+name: Flood_CamML_App
+title:
+username:
+account: copecomet
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4161107
+bundleId: 4644290
+url: https://copecomet.shinyapps.io/Flood_CamML_App/
+when: 1622068827.95695
+lastSyncTime: 1622068827.95696
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: Mirlo.jpg|NorthDock.jpg|SouthDock.jpg|SouthOcracoke.jpg|www/outer_banks_aerial.jpeg

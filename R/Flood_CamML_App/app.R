@@ -24,20 +24,20 @@ library(purrr)
 ####  Python Paths  ####
 
 # Python Path for Publishing to shinyapps.io
-# Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
+Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
 
 # Adam G's python path
 # Sys.setenv(RETICULATE_PYTHON = 'C:/python39')
 
 # Adam K's python path
-reticulate::use_condaenv(condaenv = "py36")
+# reticulate::use_condaenv(condaenv = "py36")
 
 
 
 ####  Google Auth  ####
 
 # Keys for Google Auth
-# source("./R/Flood_CamML_App/google_keys.R") # testing
+# source(here::here("R/Flood_CamML_App/google_keys.R")) # testing
 source("./google_keys.R") # publishing
 
 # load google authentications
@@ -46,7 +46,7 @@ sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 google_json_path <- Sys.getenv("GOOGLE_JSON_PATH")
 
 # Set configurations
-googledrive::drive_auth(path = google_json_path,)
+googledrive::drive_auth(path = google_json_path)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 
@@ -99,14 +99,14 @@ write_traffic_cam <- function(camera_name, cam_time) {
 get_tides <- function(location) {
   if (location == "Oregon Inlet") {
     df <- noaaoceans::query_coops_data(
-      station_id = '8652587',
-      start_date = format(Sys.Date(), "%Y%m%d"),
-      end_date = format(Sys.Date()+1, "%Y%m%d"),
+      station_id   = '8652587',
+      start_date   = format(Sys.Date(), "%Y%m%d"),
+      end_date     = format(Sys.Date()+1, "%Y%m%d"),
       data_product = 'predictions',
-      units = "english",
-      time_zone = "lst_ldt",
-      interval = 'hilo',
-      datum = 'MLLW'
+      units        = "english",
+      time_zone    = "lst_ldt",
+      interval     = 'hilo',
+      datum        = 'MLLW'
     )
     
     df <- df %>% 
@@ -226,7 +226,7 @@ ui <- dashboardPage(
     )
   ),
   
-  #####  Dashboard Body  ####
+  ####  Dashboard Body  ####
   dashboardBody(
     fluidPage(
       disconnectMessage(
