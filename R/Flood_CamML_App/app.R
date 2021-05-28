@@ -19,6 +19,7 @@ library(googlesheets4)
 library(keras)
 library(purrr)
 library(noaaoceans)
+library(gt)
 
 
 ####  Python Paths  ####
@@ -32,10 +33,11 @@ Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
 # Adam K's python path
 # reticulate::use_condaenv(condaenv = "py36")
 
+
 ####  Google Auth  ####
 
 # Keys for Google Auth
-# source("./R/Flood_CamML_App/google_keys.R") # testing
+# source(here::here("R/Flood_CamML_App/google_keys.R")) # testing
 source("./google_keys.R") # publishing
 
 # load google authentications
@@ -43,8 +45,10 @@ folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 google_json_path <- Sys.getenv("GOOGLE_JSON_PATH")
 
+# Set configurations
 googledrive::drive_auth(path = google_json_path)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
+
 
 ## 1. Load Models ---------------------------------------------------------------------
 
@@ -109,22 +113,21 @@ write_traffic_cam <- function(camera_name, cam_time) {
 
 get_tides <- function(location) {
 
-  if(location == "Oregon Inlet Marina") {
-    station_id <- '8652587'
-  }
-  if(location == "USCG Hatteras") {
-    station_id <- '8654467'
-  }
+  station_id <- switch(
+        EXPR = location,
+        "Oregon Inlet Marina" = '8652587',
+        "USCG Hatteras"       = '8654467')
+    
 
   df <- noaaoceans::query_coops_data(
     station_id,
     start_date = format(Sys.Date(), "%Y%m%d"),
-    end_date = format(Sys.Date()+1, "%Y%m%d"),
+    end_date   = format(Sys.Date()+1, "%Y%m%d"),
     'predictions',
-    units = "english",  # feet
-    time_zone = "lst_ldt",
-    interval = 'hilo',
-    datum = 'MLLW')  # alternatively, 'MHW'
+    units      = "english",  # feet
+    time_zone  = "lst_ldt",
+    interval   = 'hilo',
+    datum      = 'MLLW')  # alternatively, 'MHW'
 
   df <- df %>%
     mutate(t = lubridate::ymd_hm(t)) %>%
@@ -202,8 +205,28 @@ ui <- dashboardPage(
       
       conditionalPanel(
         condition = "input.nav === 'Model'",
-        div(style="border-left-style: solid; border-left-width: medium; border-left-color: white;",
-            p(strong("Directions: "),"Directions", style = "color:white;font-size:12pt;width:250px;margin-left:20px;"),
+        div(style="border-left-style: solid; 
+                   border-left-width: medium; 
+                   border-left-color: white;
+                   overflow-wrap: anywhere;",
+            p(strong("Directions:"),
+              
+              "Welcome to the NC12 Flood CamML Web App.
+              
+              This is a citizen science collaboration project aimed to use citizen feedback
+              to help train machine learning models for community flood detection.
+              
+              To help us improve our predictions please provide feedback for each camera by
+              submitting whether the roads appear to be flooded or not flooded. Once you have
+              submitted feedback for each camera, please press submit and your feedback will
+              be used to train better models.
+              
+              Through this feedback process our model gains more data to learn from, eventually 
+              leading to better flood detection and communication (hopefully).", 
+              style = "color:white;
+                       font-size:12pt;
+                       width:250px;
+                       margin-left:20px;"),
             br(),
             p(strong("Model 1: "),br(),"Trained from scratch", style = "color:white;font-size:12pt;width:250px;;margin-left:20px;"),
             br(),
@@ -227,7 +250,7 @@ ui <- dashboardPage(
     )
   ),
   
-  #####  Dashboard Body  ####
+  ####  Dashboard Body  ####
   dashboardBody(
     fluidPage(
       disconnectMessage(
@@ -298,7 +321,7 @@ ui <- dashboardPage(
                              tippy::tippy(span(class="badge","No Flooding",style="background-color:#00a65a;"),h4("This means that the model is less than ", strong("40%")," sure that there is water on the road"))
                       ),
                       column(width=6,
-                             h4("Help us validate our machine learning models, click 'Flooding' or 'No Flooding' under each image. For more detailed instructions, check out "About Flood CamML"")
+                             h4('Help us validate our machine learning models, click "Flooding" or "No Flooding" under each image. For more detailed instructions, check out "About Flood CamML"')
                       )
                   ),
                   
@@ -343,30 +366,30 @@ ui <- dashboardPage(
 
                 fluidRow(
                   h1("NC12 Flood CamML"),
-                  p("Flood CamML is an open source project funded by the NSF Coastlines and People program,
-                  and was completed over ~72 hours by a group of awesome scientists from across the country. /n/n
+                  p('Flood CamML is an open source project funded by the NSF Coastlines and People program,
+                     and was completed over ~72 hours by a group of awesome scientists from across the country. /n/n
 
-                  Our mission: Develop a machine learning (ML) algorithm that can detect from a single image whether or not
-                  a roadway is flooded.
+                     Our mission: Develop a machine learning (ML) algorithm that can detect from a single image whether or not
+                     a roadway is flooded.
 
-                  Why did we make Flood CamML?: As scientists, we are interested in *how often* coastal roadways -- and
-                  the people that depend on these roadways -- are impacted by shallow (nuisance) flooding or ponding.
-                  It is *easy* for a human to look at a traffic camera and recognize whether a roadway is flooded, but
-                  who has all day to look at webcameras? Our question: can we train a machine to detect flooding?
-                  Or can the machine train itself to detect flooding given enough images?
+                     Why did we make Flood CamML?: As scientists, we are interested in *how often* coastal roadways -- and
+                     the people that depend on these roadways -- are impacted by shallow (nuisance) flooding or ponding.
+                     It is *easy* for a human to look at a traffic camera and recognize whether a roadway is flooded, but
+                     who has all day to look at webcameras? Our question: can we train a machine to detect flooding?
+                     Or can the machine train itself to detect flooding given enough images?
 
-                  Why NC12?: North Carolina Highway 12 (NC12) provides access to the Outer Banks, a chain of low-lying barrier
-                  islands. Segments of NC12 are highly vulnerable to both storm and high-tide impacts, and when flooded,
-                  isolate communities from the mainland. The NC Department of Transportation maintains a series of webcams
-                  along NC12, which we utilize here!
+                     Why NC12?: North Carolina Highway 12 (NC12) provides access to the Outer Banks, a chain of low-lying barrier
+                     islands. Segments of NC12 are highly vulnerable to both storm and high-tide impacts, and when flooded,
+                     isolate communities from the mainland. The NC Department of Transportation maintains a series of webcams
+                     along NC12, which we utilize here!
 
-                  Instructions: Please help us validate our ML models to identify flooded roadways!
-                  - What do we mean by flooded? -- Images should be labeled *"flooded"* if several
-                  inches or more of water is on the roadway (typically recognizable by a sheen). Wet roadways should
-                  be classified as "not flooded".
-                  - What if you are not sure if the roadway is flooded, or if the image is blurred? -- If you cannot
-                  see the roadway in an image, or if you are not sure if flood waters are in the roadway or off to the
-                  side, classify the image as "not sure"")
+                     Instructions: Please help us validate our ML models to identify flooded roadways!
+                     - What do we mean by flooded? -- Images should be labeled *"flooded"* if several
+                     inches or more of water is on the roadway (typically recognizable by a sheen). Wet roadways should
+                     be classified as "not flooded".
+                     - What if you are not sure if the roadway is flooded, or if the image is blurred? -- If you cannot
+                     see the roadway in an image, or if you are not sure if flood waters are in the roadway or off to the
+                     side, classify the image as "not sure"')
                 )
         )
         )
@@ -390,17 +413,18 @@ server <- function(input, output, session) {
   
   # Popup on load to display info
   shinyalert(title = "Welcome to the NC12 Flood CamML!",
-             text = "View real-time NCDOT traffic camera images along North Carolina Highway 12 \n\n
+             text = '(Pronounced: "NC12 Flood Camel") \n\n
+             View real-time NCDOT traffic camera images along North Carolina Highway 12 \n\n
              Help our machine learning model better detect flooded roadways \n\n
-             Images and model predictions are preliminary and for informational purposes only \n\n
-             (it's pronunced "flood camel"!),
+             Images and model predictions are preliminary and for informational purposes only',
              closeOnClickOutside = FALSE,
              showConfirmButton = T,
              confirmButtonText = "OK",
              type = "info",
              animation=F,
              size = "s",
-             inputId = "splash_page")
+             inputId = "splash_page", 
+             closeOnEsc = T)
   
   #-------------------- Get local data ---------------
   tides <- get_tides("Oregon Inlet Marina")
@@ -414,8 +438,19 @@ server <- function(input, output, session) {
     slice(1) 
   
   output$latest_tides <- renderTable({
-     todays_tides %>% 
-      mutate(Time = str_remove(format(Time, "%I:%M %p"), "^0+"))
+     tide_table <- todays_tides %>% 
+      mutate(Time = str_remove(format(Time, "%I:%M %p"), "^0+")) 
+     # Attempt to clean up table
+     # tide_table <- tide_table %>% 
+     #   gt() %>% 
+     #   tab_header(title = "NOAA Tide Data",
+     #              subtitle = "Tides for Oregon Inlet Marina") %>% 
+     #   cols_label(Time = "Time", 
+     #              `Predicted tide (ft MLLW)` = "Height ft.",
+     #              Type = "Type")
+     return(tide_table)
+     
+      
   })
   
   output$next_tide_label <- renderUI({

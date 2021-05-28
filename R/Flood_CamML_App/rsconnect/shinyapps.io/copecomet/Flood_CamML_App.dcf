@@ -1,0 +1,14 @@
+name: Flood_CamML_App
+title:
+username:
+account: copecomet
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4161107
+bundleId: 4651242
+url: https://copecomet.shinyapps.io/Flood_CamML_App/
+when: 1622211730.00696
+lastSyncTime: 1622211730.00698
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: material_app.R|material_ui.R|shinythemes_ui.R
