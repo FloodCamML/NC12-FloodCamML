@@ -298,7 +298,7 @@ ui <- dashboardPage(
                              tippy::tippy(span(class="badge","No Flooding",style="background-color:#00a65a;"),h4("This means that the model is less than ", strong("40%")," sure that there is water on the road"))
                       ),
                       column(width=6,
-                             h4("Help us validate, click 'Flooding' or 'No Flooding'")
+                             h4("Help us validate our machine learning models, click 'Flooding' or 'No Flooding' under each image. For more detailed instructions, check out "About Flood CamML"")
                       )
                   ),
                   
@@ -339,11 +339,34 @@ ui <- dashboardPage(
                 
         ), 
         
-        
-        tabItem(tabName = "About",
+        tabItem(tabName = "About Flood CamML",
+
                 fluidRow(
                   h1("NC12 Flood CamML"),
-                  p("About...")
+                  p("Flood CamML is an open source project funded by the NSF Coastlines and People program,
+                  and was completed over ~72 hours by a group of awesome scientists from across the country. /n/n
+
+                  Our mission: Develop a machine learning (ML) algorithm that can detect from a single image whether or not
+                  a roadway is flooded.
+
+                  Why did we make Flood CamML?: As scientists, we are interested in *how often* coastal roadways -- and
+                  the people that depend on these roadways -- are impacted by shallow (nuisance) flooding or ponding.
+                  It is *easy* for a human to look at a traffic camera and recognize whether a roadway is flooded, but
+                  who has all day to look at webcameras? Our question: can we train a machine to detect flooding?
+                  Or can the machine train itself to detect flooding given enough images?
+
+                  Why NC12?: North Carolina Highway 12 (NC12) provides access to the Outer Banks, a chain of low-lying barrier
+                  islands. Segments of NC12 are highly vulnerable to both storm and high-tide impacts, and when flooded,
+                  isolate communities from the mainland. The NC Department of Transportation maintains a series of webcams
+                  along NC12, which we utilize here!
+
+                  Instructions: Please help us validate our ML models to identify flooded roadways!
+                  - What do we mean by flooded? -- Images should be labeled *"flooded"* if several
+                  inches or more of water is on the roadway (typically recognizable by a sheen). Wet roadways should
+                  be classified as "not flooded".
+                  - What if you are not sure if the roadway is flooded, or if the image is blurred? -- If you cannot
+                  see the roadway in an image, or if you are not sure if flood waters are in the roadway or off to the
+                  side, classify the image as "not sure"")
                 )
         )
         )
@@ -367,7 +390,10 @@ server <- function(input, output, session) {
   
   # Popup on load to display info
   shinyalert(title = "Welcome to the NC12 Flood CamML!",
-             text = "View real-time images of NC12 to check for flooding.... \n\n Images and information are preliminary and for informational purposes only",
+             text = "View real-time NCDOT traffic camera images along North Carolina Highway 12 \n\n
+             Help our machine learning model better detect flooded roadways \n\n
+             Images and model predictions are preliminary and for informational purposes only \n\n
+             (it's pronunced "flood camel"!),
              closeOnClickOutside = FALSE,
              showConfirmButton = T,
              confirmButtonText = "OK",
