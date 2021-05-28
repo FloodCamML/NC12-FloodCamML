@@ -24,13 +24,13 @@ library(noaaoceans)
 ####  Python Paths  ####
 
 # Python Path for Publishing to shinyapps.io
-# Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
+Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
 
 # Adam G's python path
 # Sys.setenv(RETICULATE_PYTHON = 'C:/python39')
 
 # Adam K's python path
-reticulate::use_condaenv(condaenv = "py36")
+# reticulate::use_condaenv(condaenv = "py36")
 
 ####  Google Auth  ####
 
@@ -49,7 +49,15 @@ googlesheets4::gs4_auth(token = googledrive::drive_token())
 ## 1. Load Models ---------------------------------------------------------------------
 
 # Path to model within Github folder
-model <- keras::load_model_tf("./ml/supervised")
+
+# Best model
+model1 <- keras::load_model_tf("./ml/Rmodel_5_27_2021")
+
+# Old from scratch model for testing. 
+# Can uncomment for local testing, but memory runs out of shinyapps.io
+# If uncommented, change the selectInput choices for "input$model_number"
+
+# model2 <- keras::load_model_tf("./ml/Rmodel_5_25_2021")
 
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
@@ -84,9 +92,16 @@ get_traffic_cam <- function(camera_name){
   return(time)
 }
 
+# Added picture downloads here so the files already exist before server code executes
+get_traffic_cam("Mirlo")
+get_traffic_cam("NorthDock")
+get_traffic_cam("SouthDock")
+get_traffic_cam("SouthOcracoke")
+
+
 write_traffic_cam <- function(camera_name, cam_time) {
   suppressMessages(googledrive::drive_upload(
-    media =  paste0(camera_name, ".jpg"),
+    media =  paste0(camera_name,'.jpg'),
     path = as_id(folder_ID),
     name =  paste0(camera_name, "_", cam_time, ".jpg")
   ))
@@ -143,30 +158,21 @@ standardize <- function(img) {
   return(img)
 }
 
-predict_flooding <- function(camera_name){
+predict_flooding <- function(camera_name, model_number){
   
   # Reshape to correct dimensions (1, 224, 224, 3)
-  img_array <- keras::image_load(paste0(camera_name,".jpg"),
+  img_array <- keras::image_load(paste0(camera_name,'.jpg'),
                                  target_size = c(224,224)) %>% 
     keras::image_to_array() %>% 
     standardize() %>%
     keras::array_reshape(., c(1, dim(.)))
   
   # Model prediction. I think it outputs it as a list, so could convert with a simple "as.numeric()" or "c()"
-  prediction <- model %>% 
+  prediction <- eval(parse(text = paste0("model",model_number))) %>% 
     predict(x = img_array) 
   
   as.numeric(prediction)
 }
-
-
-
-
-
-
-
-
-
 
 ####____________________________________####
 #------------------------ Define UI ---------------------------------------
@@ -191,37 +197,30 @@ ui <- dashboardPage(
     sidebarMenu(
       id = "nav",
       
-      #####_ Model 1  ####
-      menuItem("Model 1", tabName = "Model1", icon = icon("robot")),
+      #####_ Models  ####
+      menuItem("Model", tabName = "Model", icon = icon("robot")),
       
       conditionalPanel(
-        condition = "input.nav === 'Model1'",
+        condition = "input.nav === 'Model'",
         div(style="border-left-style: solid; border-left-width: medium; border-left-color: white;",
-            p("Directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
+            p(strong("Directions: "),"Directions", style = "color:white;font-size:12pt;width:250px;margin-left:20px;"),
             br(),
-            p("More directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
-            
+            p(strong("Model 1: "),br(),"Trained from scratch", style = "color:white;font-size:12pt;width:250px;;margin-left:20px;"),
+            br(),
+            p(strong("Model 2: "),br(),"Trained from scratch - old version (for testing)",style = "color:white;font-size:12pt;width:250px;;margin-left:20px;"),
+            br(),
+            selectInput(inputId = "model_number",
+                        label = "Choose a model",
+                        choices = c(1),
+                        selected = 1),
+            br(),
             div(align="center",
               actionButton(inputId = "submit", label = "SUBMIT ASSESSMENT", class = "btn btn-success", style="color:white;font-size:12pt,font-weight:bold")
             )
         )
       ), 
       
-      # #####_ Model 2 ####
-      # menuItem("Model 2", tabName = "Model2", icon = icon("robot")),
-      # 
-      # conditionalPanel(
-      #   condition = "input.nav === 'Model2'",
-      #   div(style="border-left-style: solid; border-left-width: medium; border-left-color: white;",
-      #       p("Directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
-      #       br(),
-      #       p("More directions", style = "color:white;font-size:12pt;width:250px;white-space: break-spaces;margin-left: auto;margin-right: auto; font-style:italic"),
-      #       
-      #       div(align="center",
-      #           actionButton(inputId = "submit2", label = "SUBMIT ASSESSMENT", class = "btn btn-success", style="color:white;font-size:12pt,font-weight:bold")
-      #       )
-      #   )
-      # ), 
+
       
       menuItem("About", tabName = "About", icon = icon("info-circle")),
       br()
@@ -246,8 +245,7 @@ ui <- dashboardPage(
       shinyjs::useShinyjs(),
       useShinyalert(),
       use_waiter(),
-      # waiter::waiter_show_on_load(html = spin_3k(),
-      #                             color = transparent(0)),
+      waiter::waiter_preloader(html = spin_wave(), color = "#222d32"),
       tags$head(
                 tags$style(HTML('
         .skin-black .main-header .logo {
@@ -286,8 +284,8 @@ ui <- dashboardPage(
       tabItems(
         
         
-        ###### Model 1 ####
-        tabItem(tabName = "Model1",
+        ###### Model ####
+        tabItem(tabName = "Model",
                 fluidRow(
                   
                   ######_ Prediction Key  ####
@@ -315,7 +313,7 @@ ui <- dashboardPage(
                   )
                 ),
                 
-                ######_ Mod 1 Cams  ####
+                ######_ Cams  ####
                 fluidRow(
                   
                   # Mirlo
@@ -330,44 +328,19 @@ ui <- dashboardPage(
                 # Second Row
                 fluidRow(
                   
-                  # Tester for "Danger"
+                  # SouthDock
                   column(width=6,
                          uiOutput(outputId = "southdock_selection")),
                   
-                  # Test Box 
+                  # South Ocracoke 
                   column(width=6,
                          uiOutput(outputId = "southocracoke_selection"))
                   )
                 
         ), 
         
-        
-        ###### Model 2 ####
-        # Tab showing selected data and time series graphs
-        # tabItem(tabName = "Model2",
-        #         
-        #         #####_ Mod 2 Cams  ####
-        #         fluidRow(
-        #           column(width=6,
-        #                  uiOutput(outputId = "mirlo_selection_unsupervised")
-        #           ),
-        #           
-        #           column(width=6,
-        #                  uiOutput(outputId = "northdock_selection_unsupervised")
-        #           )
-        #         ),
-        #         
-        #         fluidRow(
-        #           column(width=6,
-        #                  uiOutput(outputId = "southdock_selection_unsupervised")
-        #           ),
-        #           column(width=6,
-        #                  uiOutput(outputId = "southocracoke_selection_unsupervised")
-        #           )
-        #         )
-        #         
-        # ),
         tabItem(tabName = "About Flood CamML",
+
                 fluidRow(
                   h1("NC12 Flood CamML"),
                   p("Flood CamML is an open source project funded by the NSF Coastlines and People program,
@@ -503,25 +476,23 @@ server <- function(input, output, session) {
   southdock_time_reactive <- get_cam("SouthDock")
   southocracoke_time_reactive <- get_cam("SouthOcracoke")
   
-  
-  #--------------- Model 1. Results ----------------------
+  #--------------- Model Results ----------------------
   
   # Get Predictions
-  
   mirlo_predict <- reactive({
-    predict_flooding("Mirlo")
+    predict_flooding("Mirlo", input$model_number)
   })
   
   northdock_predict <- reactive({
-    predict_flooding("NorthDock")
+    predict_flooding("NorthDock", input$model_number)
   })
   
   southdock_predict <- reactive({
-    predict_flooding("SouthDock")
+    predict_flooding("SouthDock", input$model_number)
   })
   
   southocracoke_predict <- reactive({
-    predict_flooding("SouthOcracoke")
+    predict_flooding("SouthOcracoke", input$model_number)
   })
   
   
@@ -550,7 +521,7 @@ server <- function(input, output, session) {
   # Function to apply to each
   render_cam_image <- function(cam_name, alt_name){
     out_image <- renderImage({
-      outfile <- str_c(cam_name, ".jpg")
+      outfile <- paste0(cam_name,'.jpg')
       list(src = outfile,
            alt = alt_name,
            width = "100%"#, height="180px"
@@ -562,7 +533,7 @@ server <- function(input, output, session) {
   
   # Run Each Camera
   output$mirlo_picture <- render_cam_image(cam_name = "Mirlo", alt_name = "Mirlo Beach")
-  output$northdock_picture <- render_cam_image(cam_name = "Northdock", alt_name = "NorthDock")
+  output$northdock_picture <- render_cam_image(cam_name = "NorthDock", alt_name = "NorthDock")
   output$southdock_picture <- render_cam_image(cam_name = "SouthDock", alt_name = "SouthDock")
   output$southocracoke_picture <- render_cam_image(cam_name = "SouthOcracoke", alt_name = "SouthOcracoke")
   
@@ -652,110 +623,34 @@ server <- function(input, output, session) {
   }
   
   # Apply to each camera
-  output$mirlo_selection <- render_camera_ui(cam_name = "Mirlo", 
-                                             cam_time = isolate(mirlo_time_reactive()),
-                                             waiter_number = "",
-                                             model_prediction = isolate(mirlo_predict()))
-  output$northdock_selection <- render_camera_ui(cam_name = "NorthDock", 
-                                                 cam_time = isolate(northdock_time_reactive()),
-                                                 waiter_number = "2",
-                                                 model_prediction = isolate(northdock_predict()))
-  output$southdock_selection <- render_camera_ui(cam_name = "SouthDock", 
+  observe({
+    output$mirlo_selection <- render_camera_ui(cam_name = "Mirlo", 
+                                               cam_time = isolate(mirlo_time_reactive()),
+                                               waiter_number = "",
+                                               model_prediction = mirlo_predict())
+  })
+
+  observe({
+    output$northdock_selection <- render_camera_ui(cam_name = "NorthDock", 
+                                                   cam_time = isolate(northdock_time_reactive()),
+                                                   waiter_number = "2",
+                                                   model_prediction = northdock_predict())
+  })
+  
+  observe({
+    output$southdock_selection <- render_camera_ui(cam_name = "SouthDock", 
                                                  cam_time = isolate(southdock_time_reactive()),
                                                  waiter_number = "3",
-                                                 model_prediction = isolate(southdock_predict()))
-  output$southocracoke_selection <- render_camera_ui(cam_name = "SouthOcracoke", 
-                                                     cam_time = isolate(southocracoke_time_reactive()),
-                                                     waiter_number = "4",
-                                                     model_prediction = isolate(southocracoke_predict()))
+                                                 model_prediction = southdock_predict())
+  })
+  
+  observe({
+    output$southocracoke_selection <- render_camera_ui(cam_name = "SouthOcracoke", 
+                                                       cam_time = isolate(southocracoke_time_reactive()),
+                                                       waiter_number = "4",
+                                                       model_prediction = southocracoke_predict())
+  })
  
-  
-  
-  
-  ####____________________________####
-  ####__  Un-Supervised Model Displays __####
-  #------------------ Get Cam Images  ----------------
-  
-  # 1. reset timer for images
-  mirlo_time_reactive_unsupervised         <- get_cam("Mirlo")
-  northdock_time_reactive_unsupervised     <- get_cam("NorthDock")
-  southdock_time_reactive_unsupervised     <- get_cam("SouthDock")
-  southocracoke_time_reactive_unsupervised <- get_cam("SouthOcracoke")
-  
- 
-  
-  #--------------- Model 2. Results ----------------------
-  
-  # 2. Code to predict flood/not flood from model
-  mirlo_predict_unsupervised <- reactive({
-    # code to predict. Can use "Mirlo.jpg" as path for keras code
-  })
-  northdock_predict_unsupervised <- reactive({
-    # code to predict. 
-  })
-  southdock_predict_unsupervised <- reactive({
-    # code to predict. 
-  })
-  southocracoke_predict_unsupervised <- reactive({
-    # code to predict. 
-  })
-  
-  
-  #--------------- Display Camera Feeds ----------------------
-  
-  
-  # Initialize wait screen for individual pics. Need one of these for each site
-  w_unsupervised <- Waiter$new(id = "mirlo_selection_unsupervised",
-                  html = spin_3k(),
-                  color = transparent(.75))
-  
-  w2_unsupervised <- Waiter$new(id = "northdock_selection_unsupervised",
-                               html = spin_3k(),
-                               color = transparent(.75))
-  
-  w3_unsupervised <- Waiter$new(id = "southdock_selection_unsupervised",
-                               html = spin_3k(),
-                               color = transparent(.75))
-  
-  w4_unsupervised <- Waiter$new(id = "southocracoke_selection_unsupervised",
-                               html = spin_3k(),
-                               color = transparent(.75))
-  
-  
-  # Render camera images
-  output$mirlo_picture_unsupervised <- render_cam_image(cam_name = "Mirlo", alt_name = "Mirlo Beach")
-  output$northdock_picture_unsupervised <- render_cam_image(cam_name = "NorthDock", alt_name = "NorthDock")
-  output$southdock_picture_unsupervised <- render_cam_image(cam_name = "SouthDock", alt_name = "SouthDock")
-  output$southocracoke_picture_unsupervised <- render_cam_image(cam_name = "SouthOcracoke", alt_name = "SouthOcracoke")
-
-  
-  
-  #--------------- Camera Feedback UI ----------------------
-  
-  # Display model classification around pictures
-  # Apply model prediction and radio buttons to each camera
-  output$mirlo_selection_unsupervised <- render_camera_ui(cam_name = "Mirlo", 
-                                                          cam_time = isolate(mirlo_time_reactive_unsupervised()),
-                                                          model_prediction = isolate(mirlo_predict_unsupervised()),
-                                                          waiter_number = "_unsupervised",
-                                                          id_suffix = "_unsupervised")
-  output$northdock_selection_unsupervised <- render_camera_ui(cam_name = "NorthDock", 
-                                                              cam_time = isolate(northdock_time_reactive_unsupervised()),
-                                                              model_prediction = isolate(northdock_predict_unsupervised()),
-                                                              waiter_number = "2_unsupervised",
-                                                              id_suffix = "_unsupervised")
-  output$southdock_selection_unsupervised <- render_camera_ui(cam_name = "SouthDock", 
-                                                              cam_time = isolate(southdock_time_reactive_unsupervised()),
-                                                              model_prediction = isolate(southdock_predict_unsupervised()),
-                                                              waiter_number = "3_unsupervised",
-                                                              id_suffix = "_unsupervised")
-  output$southocracoke_selection_unsupervised <- render_camera_ui(cam_name = "SouthOcracoke", 
-                                                                  cam_time = isolate(southocracoke_time_reactive_unsupervised()),
-                                                                  model_prediction = isolate(southocracoke_predict_unsupervised()),
-                                                                  waiter_number = "4_unsupervised",
-                                                                  id_suffix = "_unsupervised")
-  
-  
   
   ####____________________________####
   ####__  User Data Collection  __####
@@ -814,64 +709,8 @@ server <- function(input, output, session) {
   
   
   
-  #####__ 2. Reset unsupervised buttons  ####
-  
-  # Mirlo
-  observeEvent(input$mirlo_clear_unsupervised ,{
-    updateRadioGroupButtons(session = session,
-                            inputId = "mirlo_button_select_unsupervised",
-                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
-                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
-                            selected = character(0), 
-                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-  })
-  
-  # NorthDock
-  observeEvent(input$northdock_clear_unsupervised ,{
-    updateRadioGroupButtons(session = session,
-                            inputId = "northdock_button_select_unsupervised",
-                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
-                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
-                            selected = character(0), 
-                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-  })
-  
-  
-  # SouthDock
-  observeEvent(input$southdock_clear_unsupervised ,{
-    updateRadioGroupButtons(session = session,
-                            inputId = "southdock_button_select_unsupervised",
-                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
-                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
-                            selected = character(0), 
-                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-  })
-  
-  
-  # SouthOcracoke
-  observeEvent(input$southocracoke_clear_unsupervised ,{
-    updateRadioGroupButtons(session = session,
-                            inputId = "southocracoke_button_select_unsupervised",
-                            choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
-                            choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
-                            selected = character(0), 
-                            checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-  })
   
   ###########  Reactive Button Info #######################
-  
-  # Need reactive code to update button values for both supervised and unsupervised
-  # I made a reactive value list above to store the value: 
-  # button_info_model1$mirlo_button_info 
-  # button_info_model2$mirlo_button_info 
-  
-  # That code looked like this
-  # button_info_model1 <- reactiveValues(mirlo_button_info = NULL)
-  # button_info_model2 <- reactiveValues(mirlo_button_info = NULL)
-  
-  # Input ID's are:
-  # inputId = "mirlo_button_select",
-  # inputId = "mirlo_button_select_unsupervised",
   
   observeEvent(c(input$mirlo_button_select, input$mirlo_clear), {
     button_info_model1$mirlo_button_info <- input$mirlo_button_select
@@ -890,8 +729,10 @@ server <- function(input, output, session) {
   })
   
   
-  
   #------------------- Submit button for model 1 -------------------
+  # This reactiveValue is to keep track of what model users have submitted
+  submissions <- reactiveValues("model1" = F,
+                                "model2" = F)
   
   # 1. Observe the user submission
   observeEvent(input$submit,{
@@ -916,13 +757,47 @@ server <- function(input, output, session) {
     )
   })
   
+  observeEvent(input$model_number,{
+    if(submissions$model1 == F & submissions$model2 == T){
+      # Change button to "submitted"
+      updateActionButton(session = session,
+                         inputId = "submit",
+                         label = "SUBMIT ASSESSMENT", 
+                         icon = icon("ok", lib = "glyphicon"))
+      
+      # disables submit button
+      shinyjs::toggleState("submit")
+    }
+    
+    # if(submissions$model1 == T){
+    #   # Change button to "submitted"
+    #   updateActionButton(session = session,
+    #                      inputId = "submit",
+    #                      label = "SUBMIT ASSESSMENT", 
+    #                      icon = icon("ok", lib = "glyphicon"))
+    #   
+    #   # disables submit button
+    #   shinyjs::disable("submit")
+    # }
+    
+    if(submissions$model2 == F & submissions$model1 == T){
+      # Change button to "submitted"
+      updateActionButton(session = session,
+                         inputId = "submit",
+                         label = "SUBMIT ASSESSMENT", 
+                         icon = icon("ok", lib = "glyphicon"))
+      
+      # disables submit button
+      shinyjs::toggleState("submit")
+    }
+    
+  })
   
   # 2. Put user data into table, push to google sheets:
   # Final submission for model 1 (tab 1)
-  observeEvent(input$shinyalert ==T,{
+  observeEvent(input$shinyalert == T,{
     req(input$shinyalert)
 
-    # Change button to "submitted"
     updateActionButton(session = session,
                        inputId = "submit",
                        label = "SUBMITTED!", 
@@ -931,6 +806,13 @@ server <- function(input, output, session) {
     # disables submit button
     shinyjs::disable("submit")
     
+    if(input$model_number == 1){
+      submissions$model1 <- T
+    }
+    
+    if(input$model_number == 2){
+      submissions$model2 <- T
+    }
     ######  Supervised Model Feedback  ####
     
     
@@ -940,32 +822,42 @@ server <- function(input, output, session) {
         "date"          = c(cam_time),
         "location"      = c(cam_name),
         "filename"      = str_c(cam_name,"_",cam_time,".jpg"), 
-        "model_type"    = "supervised",
+        "model_type"    = input$model_number, 
         "model_score"   = model_prediction,
         "model_class"   = ifelse(model_prediction > 0.6, "Flooding",
                                  ifelse(model_prediction <= 0.6 & model_prediction > 0.4, "Unsure","No Flooding")),
-        "user_response" = button_response
+        "user_response" = ifelse(is.null(button_response), NA, button_response)
       )
     }
     
     # Grab the data from the different cams
-    mirlo_data <- store_cam_data(cam_name = "Mirlo", 
-                                 cam_time = isolate(mirlo_time_reactive()),
-                                 model_prediction = isolate(mirlo_predict()), 
-                                 button_response = button_info_model1$mirlo_button_info)
-    northdock_data <- store_cam_data(cam_name = "NorthDock", 
-                                     cam_time = isolate(northdock_time_reactive()),
-                                 model_prediction = isolate(northdock_predict()), 
-                                 button_response = button_info_model1$northdock_button_info)
-    southdock_data <- store_cam_data(cam_name = "SouthDock", 
-                                     cam_time = isolate(southdock_time_reactive()),
-                                 model_prediction = isolate(southdock_predict()), 
-                                 button_response = button_info_model1$southdock_button_info)
-    southocracoke_data <- store_cam_data(cam_name = "SouthOcracoke", 
-                                         cam_time = isolate(southocracoke_time_reactive()),
-                                 model_prediction = isolate(southocracoke_predict()), 
-                                 button_response = button_info_model1$southocracoke_button_info)
+    # observe({
+      mirlo_data <- store_cam_data(cam_name = "Mirlo", 
+                                   cam_time = isolate(mirlo_time_reactive()),
+                                   model_prediction = mirlo_predict(), 
+                                   button_response = button_info_model1$mirlo_button_info)
+    # })
     
+    # observe({
+      northdock_data <- store_cam_data(cam_name = "NorthDock", 
+                                       cam_time = isolate(northdock_time_reactive()),
+                                   model_prediction = northdock_predict(), 
+                                   button_response = button_info_model1$northdock_button_info)
+    # })
+      
+    # observe({
+      southdock_data <- store_cam_data(cam_name = "SouthDock", 
+                                     cam_time = isolate(southdock_time_reactive()),
+                                 model_prediction = southdock_predict(), 
+                                 button_response = button_info_model1$southdock_button_info)
+    # })
+      
+    # observe({
+      southocracoke_data <- store_cam_data(cam_name = "SouthOcracoke", 
+                                         cam_time = isolate(southocracoke_time_reactive()),
+                                 model_prediction = southocracoke_predict(), 
+                                 button_response = button_info_model1$southocracoke_button_info)
+    # })
     
     # Join them into one table
     data <- bind_rows(mirlo_data, northdock_data, southdock_data, southocracoke_data)
@@ -975,58 +867,7 @@ server <- function(input, output, session) {
                                                  data = data))
     
     purrr::map2(data$location, data$date, write_traffic_cam)
-    
-  })
-  
-  #------------------- Submit button for model 2 -------------------
-  
-  observeEvent(input$submit2,{
-    
-    shinyalert(
-      inputId = "shinyalert2",
-      title = "Submit?",
-      text = "Are you ready to submit your answers?",
-      size = "s",
-      closeOnEsc = FALSE,
-      closeOnClickOutside = FALSE,
-      html = FALSE,
-      type = "warning",
-      showConfirmButton = TRUE,
-      showCancelButton = TRUE,
-      confirmButtonText = "Yes",
-      confirmButtonCol = "#AEDEF4",
-      cancelButtonText = "No",
-      timer = 0,
-      imageUrl = "",
-      animation = TRUE
-    )
-  })
-  
-  # Final submission for model 2 (tab 2)
-  observeEvent(input$shinyalert2 ==T,{
-    req(input$shinyalert2)
-    
-    updateActionButton(session = session,
-                       inputId = "submit2",
-                       label = "SUBMITTED!", 
-                       icon = icon("ok",lib = "glyphicon"))
-    
-    shinyjs::disable("submit2")
-    
-    # Data for unsupervised model submissions
-    data <- tibble(
-      "date" = c(mirlo_time_reactive_unsupervised()),
-      "location" = c("Mirlo"),
-      "filename" = c("mirlo_filename.jpg"), #change to whatever it ends up being
-      "model_type" = "unsupervised",
-      "model_score" = 0.3, # mirlo_predict_unsupervised()
-      "model_class" = "No Flooding", #ifelse(mirlo_predict_unsupervised() >= 0.5, "Flooding","No Flooding"),
-      "user_response" = button_info_model2$mirlo_button_info
-    )
-    
-    # Append data to google sheet
-    suppressMessages(googlesheets4::sheet_append(ss = sheets_ID,
-                                                 data = data))
+
     
   })
     
