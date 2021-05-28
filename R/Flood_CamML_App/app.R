@@ -19,18 +19,19 @@ library(googlesheets4)
 library(keras)
 library(purrr)
 library(noaaoceans)
+library(gt)
 
 
 ####  Python Paths  ####
 
 # Python Path for Publishing to shinyapps.io
-# Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
+Sys.setenv(RETICULATE_PYTHON = '/usr/local/bin/python')
 
 # Adam G's python path
 # Sys.setenv(RETICULATE_PYTHON = 'C:/python39')
 
 # Adam K's python path
-reticulate::use_condaenv(condaenv = "py36")
+# reticulate::use_condaenv(condaenv = "py36")
 
 
 ####  Google Auth  ####
@@ -204,8 +205,28 @@ ui <- dashboardPage(
       
       conditionalPanel(
         condition = "input.nav === 'Model'",
-        div(style="border-left-style: solid; border-left-width: medium; border-left-color: white;",
-            p(strong("Directions: "),"Directions", style = "color:white;font-size:12pt;width:250px;margin-left:20px;"),
+        div(style="border-left-style: solid; 
+                   border-left-width: medium; 
+                   border-left-color: white;
+                   overflow-wrap: anywhere;",
+            p(strong("Directions:"),
+              
+              "Welcome to the NC12 Flood CamML Web App.
+              
+              This is a citizen science collaboration project aimed to use citizen feedback
+              to help train machine learning models for community flood detection.
+              
+              To help us improve our predictions please provide feedback for each camera by
+              submitting whether the roads appear to be flooded or not flooded. Once you have
+              submitted feedback for each camera, please press submit and your feedback will
+              be used to train better models.
+              
+              Through this feedback process our model gains more data to learn from, eventually 
+              leading to better flood detection and communication (hopefully).", 
+              style = "color:white;
+                       font-size:12pt;
+                       width:250px;
+                       margin-left:20px;"),
             br(),
             p(strong("Model 1: "),br(),"Trained from scratch", style = "color:white;font-size:12pt;width:250px;;margin-left:20px;"),
             br(),
@@ -392,17 +413,18 @@ server <- function(input, output, session) {
   
   # Popup on load to display info
   shinyalert(title = "Welcome to the NC12 Flood CamML!",
-             text = 'View real-time NCDOT traffic camera images along North Carolina Highway 12 \n\n
+             text = '(Pronounced: "NC12 Flood Camel") \n\n
+             View real-time NCDOT traffic camera images along North Carolina Highway 12 \n\n
              Help our machine learning model better detect flooded roadways \n\n
-             Images and model predictions are preliminary and for informational purposes only \n\n
-             (pronunced "flood camel"!)',
+             Images and model predictions are preliminary and for informational purposes only',
              closeOnClickOutside = FALSE,
              showConfirmButton = T,
              confirmButtonText = "OK",
              type = "info",
              animation=F,
              size = "s",
-             inputId = "splash_page")
+             inputId = "splash_page", 
+             closeOnEsc = T)
   
   #-------------------- Get local data ---------------
   tides <- get_tides("Oregon Inlet Marina")
@@ -416,8 +438,19 @@ server <- function(input, output, session) {
     slice(1) 
   
   output$latest_tides <- renderTable({
-     todays_tides %>% 
-      mutate(Time = str_remove(format(Time, "%I:%M %p"), "^0+"))
+     tide_table <- todays_tides %>% 
+      mutate(Time = str_remove(format(Time, "%I:%M %p"), "^0+")) 
+     # Attempt to clean up table
+     # tide_table <- tide_table %>% 
+     #   gt() %>% 
+     #   tab_header(title = "NOAA Tide Data",
+     #              subtitle = "Tides for Oregon Inlet Marina") %>% 
+     #   cols_label(Time = "Time", 
+     #              `Predicted tide (ft MLLW)` = "Height ft.",
+     #              Type = "Type")
+     return(tide_table)
+     
+      
   })
   
   output$next_tide_label <- renderUI({
