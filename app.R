@@ -48,20 +48,12 @@ tmp_dir <- tempdir()
 
 #------- camera list --------------------
 
-# This could be a .csv so it's easier to edit. Column names = "camera_list", "url", "lat", "long"
-cam_list <- c("Mirlo", "NorthDock", "SouthDock", "SouthOcracoke")
-cam_url_list <- c('https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_MirloBeach.jpg',
-                  'https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_North_Dock.jpg',
-                  'https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_South_Dock.jpg',
-                  'https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg')
+# Lat and Long aren't currently in use but exist in the csv for later mapping
+# Filter by 'use' column so users can include other sites later
+camera_info <- readr::read_csv("camera_info.csv") %>% 
+  filter(use == T)
 
-# Lat and Long aren't currently included here
-camera_info <- tibble::tibble(camera_name = cam_list,
-                              lower_name = tolower(camera_name),
-                              url = cam_url_list)
-
-
-# Create layout for UI
+# Create layout info for UI
 panel_data <- tibble("panels" = 1:length(camera_info$camera_name)) %>% 
   mutate("rows" = ceiling(panels/2),
          "position" = c(0, abs(diff(rows)-1)))
@@ -70,35 +62,20 @@ panel_data <- tibble("panels" = 1:length(camera_info$camera_name)) %>%
 
 # Path to model within Github folder
 
-# Best model
-model <- keras::load_model_tf("./models/Rmodel_5_27_2021")
+# Best model. 3 class classification model
+model <- keras::load_model_tf("./models/Rmodel_scratch_2021-19-54-37")
+  
+# Flooding vs. no flooding model
+# model <- keras::load_model_tf("./models/Rmodel_5_27_2021")
 
-# Old from scratch model for testing. 
-# Can uncomment for local testing, but memory runs out of shinyapps.io
-# If uncommented, change the selectInput choices for "input$model_number"
-
-# model2 <- keras::load_model_tf("./ml/Rmodel_5_25_2021")
 
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
 
-# This function could be re-worked to so it reads the URL from the .csv loaded in "camera list"
 get_traffic_cam <- function(camera_name){
   
-  # from   https://www.drivenc.gov/
-  URL <- switch(
-    EXPR = camera_name,
-    'Mirlo'         = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_MirloBeach.jpg',
-    "NorthDock"     = 'https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_North_Dock.jpg',
-    "SouthDock"     = 'https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_South_Dock.jpg',
-    "SouthOcracoke" = 'https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg',
-    "Ocracoke"      = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_OcracokeNorth.jpg',
-    "Hatteras"      = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NorthHatterasVillage.jpg',
-    "Buxton"        = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_Buxton.jpg',
-    "NewInlet"      = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NewInlet.jpg',
-    "Canal"         = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_CanalZone.jpg',
-    "RBNurl"        = 'https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg')
-  
+  URL <- camera_info$url[camera_info$camera_name == camera_name] 
+    
   # retrieve the image
   pic <- magick::image_read(URL)
   time <-  Sys.time() %>% lubridate::with_tz("UTC")
@@ -106,7 +83,6 @@ get_traffic_cam <- function(camera_name){
   # write the image to temporary file. This will be handy for Shiny where renderImage requires an "outfile".
   magick::image_write(pic, path = paste0(tmp_dir,"/",camera_name,'.jpg'), format = "jpg")
   
-  # print(paste0(tmp_dir,"/",camera_name,'.jpg'))
   return(time)
 }
 
@@ -131,7 +107,7 @@ get_tides <- function(location) {
   
   df <- noaaoceans::query_coops_data(
     station_id = station_id,
-    start_date = format(lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date(), "%Y%m%d"),
+    start_date = format(lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date()-1, "%Y%m%d"),
     end_date = format(lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date()+1, "%Y%m%d"),
     data_product = 'predictions',
     units = "english",  # feet
@@ -183,9 +159,14 @@ predict_flooding <- function(camera_name){
   
   # Model prediction. I think it outputs it as a list, so could convert with a simple "as.numeric()" or "c()"
   prediction <- model %>% 
-    predict(x = img_array) 
-  
-  as.numeric(prediction)
+    predict(x = img_array) %>% 
+    t() %>% 
+    as_tibble() %>% 
+    transmute(prob = round(V1, 2),
+           label = c("No Flooding", "Not Sure", "Flooding")) %>% 
+    filter(prob == max(prob, na.rm=T))
+    
+  prediction
 }
 
 ####____________________________________####
@@ -439,7 +420,7 @@ server <- function(input, output, session) {
   
   
   tides <- reactive({
-    tides_try <- suppressMessages(try(get_tides(input$latest_tides_location)))
+   get_tides(input$latest_tides_location)
   }) %>% 
     bindCache(input$latest_tides_location)
   
@@ -447,13 +428,13 @@ server <- function(input, output, session) {
     w_latest_conditions$show()
     
     last_tide <- tides() %>% 
-      filter(as.Date(Time) == lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date()) %>% 
+      # filter(as.Date(Time) == lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date()) %>% 
       filter(Time <= lubridate::with_tz(Sys.time(), "America/New_York")) %>% 
       arrange(rev(Time)) %>% 
       slice(1) 
     
     next_tide <- tides() %>% 
-      filter(as.Date(Time) == lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date()) %>% 
+      # filter(as.Date(Time) == lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date()) %>% 
       filter(Time > lubridate::with_tz(Sys.time(), "America/New_York")) %>% 
       arrange(Time) %>% 
       slice(1) 
@@ -549,7 +530,8 @@ server <- function(input, output, session) {
   # takes the camera name, the reactive time, and the model predictions
   render_camera_ui <- function(cam_name, cam_time, model_prediction, id_suffix = ""){
     
-    model_prediction_val <- model_prediction
+    model_prediction_val <- model_prediction$prob
+    model_prediction_class <- model_prediction$label
     cam_time_val <- cam_time()
     lst_time <- cam_time_val %>% lubridate::with_tz("America/New_York")
     
@@ -571,21 +553,21 @@ server <- function(input, output, session) {
           div(style="display:inline-block",
               h2(gsub("([a-z])([A-Z])", "\\1 \\2", cam_name))),
           div(style="display:inline-block",
-              if(model_prediction_val > 0.6){
+              if(model_prediction_class == "Flooding"){
                 span(class="badge","Flooding",style="background-color:#dd4b39;
              position: relative;
              bottom: 5px;
              color:white;")
               }
               
-              else if(model_prediction_val > 0.4 & model_prediction_val <= 0.6){
+              else if(model_prediction_class == "Not Sure"){
                 span(class="badge","Unsure",style="background-color:#f39c12;
              position: relative;
              bottom: 5px;
              color:white;")
               }
               
-              else if(model_prediction_val <= 0.4 ){
+              else if(model_prediction_class == "No Flooding"){
                 span(class="badge","No Flooding",style="background-color:#00a65a;
              position: relative;
              bottom: 5px;
@@ -597,7 +579,8 @@ server <- function(input, output, session) {
                       height="100%"),
           
           # Datetime for image
-          p(paste0(lst_time, " EDT/EST")),
+          p(paste0("Probability: ", model_prediction_val)),
+          p(paste0("Time: ", lst_time, " EDT/EST")),
           
           # Inline boxes for user feedback
           div(style="display:inline-block",
@@ -713,9 +696,8 @@ server <- function(input, output, session) {
         "date"          = c(cam_time),
         "location"      = c(cam_name),
         "filename"      = str_c(cam_name,"_",cam_time,".jpg"), 
-        "model_score"   = model_prediction,
-        "model_class"   = ifelse(model_prediction > 0.6, "Flooding",
-                                 ifelse(model_prediction <= 0.6 & model_prediction > 0.4, "Unsure","No Flooding")),
+        "model_score"   = model_prediction$prob,
+        "model_class"   = model_prediction$label,
         "user_response" = ifelse(is.null(button_response), NA, button_response)
       )
     }
