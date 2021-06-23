@@ -49,8 +49,3 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
-
-R/Flood_CamML_App/google_keys.R
-R/Flood_CamML_App/*.jpg
-.json
-R/Flood_CamML_App/google_key.json
