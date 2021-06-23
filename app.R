@@ -179,7 +179,12 @@ ui <- dashboardPage(
   #####  Header  ####
   header = dashboardHeader(
     title =  p("NC12 Flood CamML", style="color:white;"),
-    titleWidth = 350),
+    titleWidth = 350,
+    tags$li(class = "dropdown", 
+            actionButton(inputId = "submit", label = "SUBMIT ASSESSMENT", class = "btn btn-success", style="color:white;font-size:12pt,font-weight:bold;"),
+            style="margin:8px 20px 8px 0px;"
+            )
+),
   
   
   #####  Sidebar  ####
@@ -199,10 +204,7 @@ ui <- dashboardPage(
                     overflow-wrap: anywhere;
                     padding: 1px 20px;",
             includeMarkdown("./text/directions.md"),
-            br(),
-            div(align="center",
-                actionButton(inputId = "submit", label = "SUBMIT ASSESSMENT", class = "btn btn-success", style="color:white;font-size:12pt,font-weight:bold;")
-            )
+            br()
         )
       ), 
       
@@ -299,6 +301,8 @@ ui <- dashboardPage(
                              tippy::tippy(span(class="badge","Unsure",style="background-color:#f39c12;"),h4("This means that the model is between ", strong("40 - 60%")," sure that there is water on the road")),
                              ", or ",
                              tippy::tippy(span(class="badge","No Flooding",style="background-color:#00a65a;"),h4("This means that the model is less than ", strong("40%")," sure that there is water on the road")),
+                             style="text-align:center;"),
+                           p("Then click the submit button in the upper right.",
                              style="text-align:center;"),
                            helpText("For more details, check out",
                                     actionLink("to_about_section", "About Flood CamML"))
@@ -530,7 +534,7 @@ server <- function(input, output, session) {
   # takes the camera name, the reactive time, and the model predictions
   render_camera_ui <- function(cam_name, cam_time, model_prediction, id_suffix = ""){
     
-    model_prediction_val <- model_prediction$prob
+    model_prediction_val <- model_prediction$prob * 100
     model_prediction_class <- model_prediction$label
     cam_time_val <- cam_time()
     lst_time <- cam_time_val %>% lubridate::with_tz("America/New_York")
@@ -579,7 +583,7 @@ server <- function(input, output, session) {
                       height="100%"),
           
           # Datetime for image
-          p(paste0("Probability: ", model_prediction_val)),
+          p(paste0("ML probability of ", model_prediction_class,": ", model_prediction_val,"%")),
           p(paste0("Time: ", lst_time, " EDT/EST")),
           
           # Inline boxes for user feedback
