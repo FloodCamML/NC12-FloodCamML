@@ -62,12 +62,8 @@ panel_data <- tibble("panels" = 1:length(camera_info$camera_name)) %>%
 
 # Path to model within Github folder
 
-# Best model. 3 class classification model
-model <- keras::load_model_tf("./models/Rmodel_scratch_2021-19-54-37")
-  
-# Flooding vs. no flooding model
-# model <- keras::load_model_tf("./models/Rmodel_5_27_2021")
-
+# Best model. 4 class classification model
+model <- keras::load_model_tf("./models/Rmodel_6_23_2021")
 
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
@@ -163,8 +159,9 @@ predict_flooding <- function(camera_name){
     t() %>% 
     as_tibble() %>% 
     transmute(prob = round(V1, 2),
-           label = c("No Flooding", "Not Sure", "Flooding")) %>% 
-    filter(prob == max(prob, na.rm=T))
+           label = c("Bad Image","No Flooding", "Not Sure", "Flooding")) %>% 
+    filter(prob == max(prob, na.rm=T)) %>% 
+    slice(1)
     
   prediction
 }
@@ -270,6 +267,10 @@ ui <- dashboardPage(
           white-space: normal;
           overflow: hidden;
         }
+        
+        .content {
+          padding: 5px;
+        }
 
       '))),
       
@@ -296,16 +297,16 @@ ui <- dashboardPage(
                            h3("Flood detection with machine learning"),
                            p("Click  below each image to tell us if it shows:",
                              style="text-align:center;"),
-                           p(tippy::tippy(span(class="badge","Flooding",style="background-color:#dd4b39;"),h4("This means that the model is more than ", strong("60%")," sure that there is water on the road")),
+                           p(tippy::tippy(span(class="badge","Flood",style="background-color:#dd4b39;"),h5("Road appears to be flooded")),
                              ", ",
-                             tippy::tippy(span(class="badge","Unsure",style="background-color:#f39c12;"),h4("This means that the model is between ", strong("40 - 60%")," sure that there is water on the road")),
+                             tippy::tippy(span(class="badge","Not Sure",style="background-color:#f39c12;"),h5("Can't tell if the road is flooded or not")),
+                             ", ",
+                             tippy::tippy(span(class="badge","No Flood",style="background-color:#00a65a;"),h5("Road appears to not be flooded")),
                              ", or ",
-                             tippy::tippy(span(class="badge","No Flooding",style="background-color:#00a65a;"),h4("This means that the model is less than ", strong("40%")," sure that there is water on the road")),
+                             tippy::tippy(span(class="badge","Bad Image",style="background-color:#787878;"),h5("The image is dark, bad weather, camera is not working, rain on the camera lens, etc.")),
                              style="text-align:center;"),
-                           p("Then click the submit button in the upper right.",
-                             style="text-align:center;"),
-                           helpText("For more details, check out",
-                                    actionLink("to_about_section", "About Flood CamML"))
+                           p("Then click the submit button in the upper right. See ",actionLink("to_about_section", "About Flood CamML"), " for more info",
+                             style="text-align:center;")
                          )
                   ),
                   column(width=6,
@@ -446,16 +447,22 @@ server <- function(input, output, session) {
     
     output$tide_label <- renderUI({
       last_tide_label <-last_tide %>% 
-        mutate(Time = ifelse(as.Date(Time) == lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date(), paste0("Today at ", format(Time, "%I:%M %p")), paste0("Tomorrow at ", format(Time, "%I:%M %p")))) %>% 
-        mutate(Type = ifelse(Type == "H", "High", "Low"))
+        mutate(date = format(Time, "%m/%d/%Y"),
+               sys_date = lubridate::with_tz(Sys.time(), "America/New_York") %>% format(., "%m/%d/%Y")) %>% 
+        mutate(Time = ifelse(date == sys_date, paste0("Today at ", format(Time, "%I:%M %p")), ifelse(date > sys_date, paste0("Tomorrow at ", format(Time, "%I:%M %p")), paste0("Yesterday at ", format(Time, "%I:%M %p"))))) %>% 
+        mutate(Type = ifelse(Type == "H", "High", "Low")) %>% 
+        dplyr::select(-c(date, sys_date))
       
       next_tide_label <- next_tide %>% 
-        mutate(Time = ifelse(as.Date(Time) == lubridate::with_tz(Sys.time(), "America/New_York") %>% as.Date(), paste0("Today at ", format(Time, "%I:%M %p")), paste0("Tomorrow at ", format(Time, "%I:%M %p")))) %>% 
-        mutate(Type = ifelse(Type == "H", "High", "Low"))
+        mutate(date = format(Time, "%m/%d/%Y"),
+               sys_date = lubridate::with_tz(Sys.time(), "America/New_York") %>% format(., "%m/%d/%Y")) %>% 
+        mutate(Time = ifelse(date == sys_date, paste0("Today at ", format(Time, "%I:%M %p")), ifelse(date > sys_date, paste0("Tomorrow at ", format(Time, "%I:%M %p")), paste0("Yesterday at ", format(Time, "%I:%M %p"))))) %>% 
+        mutate(Type = ifelse(Type == "H", "High", "Low")) %>% 
+        dplyr::select(-c(date, sys_date))
       
       div(
-        span(h5("Last tide:",strong(last_tide_label$Time),"(",last_tide_label$Type,": ",last_tide_label$`Predicted tide (ft MLLW)`," ft MLLW",")")),
-        span(h5("Next tide:",strong(next_tide_label$Time),"(",next_tide_label$Type,": ",next_tide_label$`Predicted tide (ft MLLW)`," ft MLLW",")"))   
+        span(h5("Last tide:",strong(last_tide_label$Time),paste0("(",last_tide_label$Type,": ",last_tide_label$`Predicted tide (ft MLLW)`," ft MLLW",")"))),
+        span(h5("Next tide:",strong(next_tide_label$Time),paste0("(",next_tide_label$Type,": ",next_tide_label$`Predicted tide (ft MLLW)`," ft MLLW",")")))   
       )
     })
   })
@@ -537,7 +544,7 @@ server <- function(input, output, session) {
     model_prediction_val <- model_prediction$prob * 100
     model_prediction_class <- model_prediction$label
     cam_time_val <- cam_time()
-    lst_time <- cam_time_val %>% lubridate::with_tz("America/New_York")
+    lst_time <- format(cam_time_val %>% lubridate::with_tz("America/New_York"), "%m/%d/%Y %H:%M")
     
     # string prep for naming patterns for UI elements
     # option to add suffix for "_unsupervised" ui elements
@@ -551,32 +558,22 @@ server <- function(input, output, session) {
           style="background-color: #ffffff;
             padding: 10px;
             border-radius: 10px;
-            margin: 10px 0;",
+            margin: 10px 0px;",
           # height=300,
           align  = "center",
           div(style="display:inline-block",
               h2(gsub("([a-z])([A-Z])", "\\1 \\2", cam_name))),
           div(style="display:inline-block",
-              if(model_prediction_class == "Flooding"){
-                span(class="badge","Flooding",style="background-color:#dd4b39;
-             position: relative;
-             bottom: 5px;
-             color:white;")
-              }
               
-              else if(model_prediction_class == "Not Sure"){
-                span(class="badge","Unsure",style="background-color:#f39c12;
-             position: relative;
-             bottom: 5px;
-             color:white;")
-              }
-              
-              else if(model_prediction_class == "No Flooding"){
-                span(class="badge","No Flooding",style="background-color:#00a65a;
-             position: relative;
-             bottom: 5px;
-             color:white;")
-              }),
+              switch(
+                EXPR = model_prediction_class,
+                "Flooding" = span(class="badge","Flooding",style="background-color:#dd4b39;position: relative; bottom: 5px; color:white;"),
+                "Not Sure" = span(class="badge","Not Sure",style="background-color:#f39c12;position: relative; bottom: 5px; color:white;"),
+                "No Flooding" = span(class="badge","No Flooding",style="background-color:#00a65a;position: relative;bottom: 5px;color:white;"),
+                "Bad Image" = span(class="badge","Bad Image",style="background-color:#787878;position: relative;bottom: 5px;color:white;")
+              )
+                
+      ),
           
           # Display Cam Image
           imageOutput(img_output_id,
@@ -588,12 +585,16 @@ server <- function(input, output, session) {
           
           # Inline boxes for user feedback
           div(style="display:inline-block",
+
               shinyWidgets::radioGroupButtons(inputId = radio_button_id,
-                                              choiceNames = c("Flooding", "Not Sure", "No Flooding"),
-                                              choiceValues = c("Flooding", "Not Sure", "No Flooding"),
-                                              justified = F,
-                                              selected = character(0),
-                                              checkIcon = list(yes = icon("ok",lib="glyphicon")))
+                                              choiceNames = c("Flood", "Not Sure", "No Flood","Bad Image"),
+                                              choiceValues = c("Flood", "Not Sure", "No Flood","Bad Image"),
+                                              direction = "horizontal",
+                                              width = '100%' ,
+                                              individual = F,
+                                              selected = character(0)
+                                              # checkIcon = list(yes = icon("ok",lib="glyphicon"))
+                                              )
           ),
           
           # clear selection button
@@ -634,10 +635,11 @@ server <- function(input, output, session) {
     observeEvent(input[[paste0(tolower(.x),"_clear")]],{
       updateRadioGroupButtons(session = session,
                               inputId = paste0(tolower(.x),"_button_select"),
-                              choiceNames  = c("Flooding", "Not Sure", "No Flooding"), 
-                              choiceValues = c("Flooding", "Not Sure", "No Flooding"), 
+                              choiceNames  = c("Flood", "Not Sure", "No Flood","Bad Image"), 
+                              choiceValues = c("Flood", "Not Sure", "No Flood","Bad Image"), 
                               selected = character(0), 
-                              checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+                              # checkIcon = list(yes = icon("ok", lib = "glyphicon"))
+                              )
     })
   })
   
