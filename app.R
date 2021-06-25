@@ -40,9 +40,9 @@ folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 google_json <- Sys.getenv("GOOGLE_JSON")
 
-jsonlite::write_json(x = google_json, path = "./google.json")
+jsonlite::write_json(x = google_json, path = "/data/google.json")
 
-googledrive::drive_auth(path = "./google.json")
+googledrive::drive_auth(path = "/data/google.json")
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 # Create temp directory for storing pictures
