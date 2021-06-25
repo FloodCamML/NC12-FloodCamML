@@ -17,7 +17,7 @@ library(googlesheets4)
 library(keras)
 library(purrr)
 library(noaaoceans)
-
+library(jsonlite)
 
 ####  Python Paths  ####
 
@@ -33,12 +33,14 @@ library(noaaoceans)
 ####  Google Auth  ####
 
 # Keys for Google Auth
-source("./keys/google_keys.R") # publishing
+# source("./keys/google_keys.R") # publishing
 
 # load google authentications
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
-google_json_path <- Sys.getenv("GOOGLE_JSON_PATH")
+google_json <- Sys.getenv("GOOGLE_JSON")
+
+google_json_path <- jsonlite::write_json(x = google_json, path = "./google.json")
 
 googledrive::drive_auth(path = google_json_path)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
