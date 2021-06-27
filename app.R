@@ -18,6 +18,7 @@ library(keras)
 library(purrr)
 library(noaaoceans)
 library(jsonlite)
+library(readr)
 
 ####  Python Paths  ####
 
