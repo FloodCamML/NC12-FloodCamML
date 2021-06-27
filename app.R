@@ -56,18 +56,22 @@ tmp_dir <- tempdir()
 camera_info <- readr::read_csv("./camera_info.csv") %>% 
   filter(use == T)
 
+print(camera_info)
+getwd()
+
 # Create layout info for UI
 panel_data <- tibble("panels" = 1:length(camera_info$camera_name)) %>% 
   mutate("rows" = ceiling(panels/2),
          "position" = c(0, abs(diff(rows)-1)))
 
+print(panel_data)
 ## 1. Load Model ---------------------------------------------------------------------
 
 # Path to model within Github folder
 
 # Best model. 4 class classification model
 model <- keras::load_model_tf("./models/Rmodel_6_23_2021")
-
+print(model)
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
 
