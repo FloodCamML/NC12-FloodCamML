@@ -38,11 +38,13 @@ library(jsonlite)
 # load google authentications
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
-google_json <- Sys.getenv("GOOGLE_JSON")
+google_key <- Sys.getenv("GOOGLE_CSV")
 
-jsonlite::write_json(x = google_json, path = "/data/google.json")
+g <- read_csv(google_key) %>% 
+  c() %>% 
+  toJSON(auto_unbox = T, pretty=T)
 
-googledrive::drive_auth(path = "/data/google.json")
+googledrive::drive_auth(path = g)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 # Create temp directory for storing pictures
