@@ -64,7 +64,7 @@ panel_data <- tibble("panels" = 1:length(camera_info$camera_name)) %>%
 # Path to model within Github folder
 
 # Best model. 4 class classification model
-model <- keras::load_model_tf("./models/Rmodel_6_23_2021")
+model <- keras::load_model_tf("/data/models/Rmodel_6_23_2021")
 
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
