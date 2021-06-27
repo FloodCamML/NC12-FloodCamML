@@ -40,6 +40,7 @@ library(readr)
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 google_key <- Sys.getenv("GOOGLE_JSON")
+camera_info <- Sys.getenv("camera_info")
 
 googledrive::drive_auth(path = google_key)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
@@ -51,7 +52,7 @@ tmp_dir <- tempdir()
 
 # Lat and Long aren't currently in use but exist in the csv for later mapping
 # Filter by 'use' column so users can include other sites later
-camera_info <- readr::read_csv("camera_info.csv") %>% 
+camera_info <- readr::read_csv(camera_info) %>% 
   filter(use == T)
 
 # Create layout info for UI
