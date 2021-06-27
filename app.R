@@ -40,8 +40,10 @@ library(readr)
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 google_key <- Sys.getenv("GOOGLE_JSON")
+# google_key_path <- Sys.getenv("GOOGLE_JSON_PATH")
 
 googledrive::drive_auth(path = google_key)
+# googledrive::drive_auth(path = google_key_path)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 # Create temp directory for storing pictures
@@ -64,7 +66,7 @@ panel_data <- tibble("panels" = 1:length(camera_info$camera_name)) %>%
 # Path to model within Github folder
 
 # Best model. 4 class classification model
-model <- keras::load_model_tf("/data/models/Rmodel_6_23_2021")
+model <- keras::load_model_tf("./models/Rmodel_6_23_2021")
 
 
 ## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
