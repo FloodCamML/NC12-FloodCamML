@@ -39,13 +39,9 @@ library(readr)
 # load google authentications
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
-google_key <- Sys.getenv("GOOGLE_CSV")
+google_key <- Sys.getenv("GOOGLE_JSON")
 
-g <- read_csv(google_key) %>% 
-  c() %>% 
-  toJSON(auto_unbox = T, pretty=T)
-
-googledrive::drive_auth(path = g)
+googledrive::drive_auth(path = google_key)
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 # Create temp directory for storing pictures
