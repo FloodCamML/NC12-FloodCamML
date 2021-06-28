@@ -200,14 +200,15 @@ ui <- dashboardPage(
                     border-left-color: white;
                     overflow-wrap: anywhere;
                     padding: 1px 20px;",
-            includeMarkdown("./text/directions.md"),
+            includeMarkdown("text/cameras.md"),
             br()
         )
       ), 
       
       
       # ------------ _About Flood CamML -----------
-      menuItem("About", tabName = "About", icon = icon("info-circle"))
+      menuItem("About the Project", tabName = "About", icon = icon("info-circle")),
+      menuItem("The Model", tabName = "Model", icon = icon("info-circle")),
     )
   ),
   
@@ -305,7 +306,7 @@ ui <- dashboardPage(
                              ", or ",
                              tippy::tippy(span(class="badge","Bad Image",style="background-color:#787878;"),h5("The image is dark, bad weather, camera is not working, rain on the camera lens, etc.")),
                              style="text-align:center;"),
-                           p("But are these predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. Your feedback will make our model better! See ",actionLink("to_about_section", "About"), " for more info",
+                           p("But are these predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. See ",actionLink("to_about_section", "About"), " for more info",
                              style="text-align:center;")
                          )
                   ),
@@ -341,6 +342,12 @@ ui <- dashboardPage(
                 
                 fluidRow(
                   includeMarkdown("text/about_project.md")
+                )
+        ),
+        tabItem(tabName = "Model",
+
+                fluidRow(
+                  includeMarkdown("text/about_ML.md")
                 )
         )
       )
