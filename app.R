@@ -301,18 +301,18 @@ ui <- dashboardPage(
                       width:100%;",
                            # height=300,
                            align  = "center",
-                           h3("Flood detection with machine learning"),
-                           p("Click  below each image to tell us if it shows:",
+                           h3("Flood detection using machine learning"),
+                           p("Our model makes the following predictions for each image:",
                              style="text-align:center;"),
-                           p(tippy::tippy(span(class="badge","Flood",style="background-color:#dd4b39;"),h5("Road appears to be flooded")),
+                           p(tippy::tippy(span(class="badge","Flooding",style="background-color:#dd4b39;"),h5("Road appears to be flooded")),
                              ", ",
                              tippy::tippy(span(class="badge","Not Sure",style="background-color:#f39c12;"),h5("Can't tell if the road is flooded or not")),
                              ", ",
-                             tippy::tippy(span(class="badge","No Flood",style="background-color:#00a65a;"),h5("Road appears to not be flooded")),
+                             tippy::tippy(span(class="badge","No Flooding",style="background-color:#00a65a;"),h5("Road appears to not be flooded")),
                              ", or ",
                              tippy::tippy(span(class="badge","Bad Image",style="background-color:#787878;"),h5("The image is dark, bad weather, camera is not working, rain on the camera lens, etc.")),
                              style="text-align:center;"),
-                           p("Then click the submit button in the upper right. See ",actionLink("to_about_section", "About Flood CamML"), " for more info",
+                           p("But are these predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. Your feedback will make our model better! See ",actionLink("to_about_section", "About"), " for more info",
                              style="text-align:center;")
                          )
                   ),
@@ -347,7 +347,7 @@ ui <- dashboardPage(
         tabItem(tabName = "About",
                 
                 fluidRow(
-                  includeMarkdown("./text/about.md")
+                  includeMarkdown("text/about_project.md")
                 )
         )
       )
