@@ -36,11 +36,11 @@ see the roadway in an image, images should be labeled `bad image`.
 - **If you are not sure if flood waters are in the roadway or off to the side of the roadway**, classify the image as `not sure`.
 
 **Contributors (in alphabetical order):** 
-Katherine Anarde - North Carolina State University
-Daniel Buscombe - United States Geological Survey
-Adam Gold - University of North Carolina - Chapel Hill
-Evan Goldstein - University of North Carolina - Greensboro
-Adam Kemberling - Gulf of Maine Research Institute
-Carter Smith - Duke University
-Christine Wei - University of North Carolina - Chapel Hill
-Emory Wellman - University of Florida
+- *Katherine Anarde* - North Carolina State University
+- *Daniel Buscombe* - Marda Science, LLC, contracted to U.S. Geological Survey Pacific Coastal and Marine Science Center, Santa Cruz, California
+- *Adam Gold* - University of North Carolina - Chapel Hill
+- *Evan Goldstein* - University of North Carolina - Greensboro
+- *Adam Kemberling* - Gulf of Maine Research Institute
+- *Carter Smith* - Duke University
+- *Christine Wei* - University of North Carolina - Chapel Hill
+- *Emory Wellman* - University of Florida

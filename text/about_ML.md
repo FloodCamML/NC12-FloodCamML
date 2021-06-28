@@ -1,4 +1,4 @@
-#The Science Behind the NC12 Flood CamML Model
+#The science behind NC12 Flood CamML
 
 ## Overview:
 
