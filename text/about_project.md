@@ -37,9 +37,10 @@ see the roadway in an image, images should be labeled `bad image`.
 
 **Contributors (in alphabetical order):** 
 Katherine Anarde - North Carolina State University
+Daniel Buscombe - United States Geological Survey
 Adam Gold - University of North Carolina - Chapel Hill
+Evan Goldstein - University of North Carolina - Greensboro
 Adam Kemberling - Gulf of Maine Research Institute
 Carter Smith - Duke University
-Daniel Buscombe - United States Geological Survey
-Emory Wellman - Eastern Carolina University
-Evan Goldstein - University of North Carolina - Greensboro
+Christine Wei - University of North Carolina - Chapel Hill
+Emory Wellman - University of Florida

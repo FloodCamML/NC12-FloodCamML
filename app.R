@@ -209,6 +209,7 @@ ui <- dashboardPage(
       # ------------ _About Flood CamML -----------
       menuItem("About the Project", tabName = "About", icon = icon("info-circle")),
       menuItem("The Model", tabName = "Model", icon = icon("info-circle")),
+      menuItem("Contact Us", tabName = "Contact", icon = icon("info-circle")),
     )
   ),
   
@@ -349,7 +350,12 @@ ui <- dashboardPage(
                 fluidRow(
                   includeMarkdown("text/about_ML.md")
                 )
-        )
+        ),
+        tabItem(tabName = "Contact",
+
+                fluidRow(
+                  includeMarkdown("text/contact_us.md")
+                )
       )
     )
   )
