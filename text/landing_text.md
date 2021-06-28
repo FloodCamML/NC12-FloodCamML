@@ -12,4 +12,4 @@ Help us **automatically detect flooding** along North Carolina Highway 12
 
 </br>
 
-*Images and model predictions are preliminary and for informational purposes only*  
+*Images and model predictions are preliminary and for informational purposes only* 

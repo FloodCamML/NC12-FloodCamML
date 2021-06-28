@@ -146,9 +146,13 @@ predict_flooding <- function(camera_name){
   # Model prediction. I think it outputs it as a list, so could convert with a simple "as.numeric()" or "c()"
   prediction <- model %>% 
     predict(x = img_array) %>% 
-    t() %>% 
+    t()
+  
+  colnames(prediction) <- "prob"
+  
+  prediction <- prediction %>% 
     as_tibble() %>% 
-    transmute(prob = round(V1, 2),
+    transmute(prob = round(prob, 2),
            label = c("Bad Image","No Flooding", "Not Sure", "Flooding")) %>% 
     filter(prob == max(prob, na.rm=T)) %>% 
     slice(1)
@@ -222,7 +226,6 @@ ui <- dashboardPage(
       use_waiter(),
       waiter::waiter_preloader(html = spin_wave(), color = "#222d32"),
       tags$head(
-        includeHTML("google-analytics.html"),
         tags$style(HTML('
         .skin-black .main-header .logo {
           background-color: #000000;
@@ -462,10 +465,12 @@ server <- function(input, output, session) {
   # These capture user inputs for later
   
   # feedback on model 1
-  button_info_model1 <- reactiveValues(mirlo_button_info = NULL, 
-                                       northdock_button_info = NULL,
-                                       southdock_button_info = NULL,
-                                       southocracoke_button_info = NULL)
+  button_info_model1 <- reactiveValues(
+    # mirlo_button_info = NULL, 
+    #                                    northdock_button_info = NULL,
+    #                                    southdock_button_info = NULL,
+    #                                    southocracoke_button_info = NULL
+    )
   
   
   ####____________________________####
@@ -644,9 +649,6 @@ server <- function(input, output, session) {
   
   
   #------------------- Submit button for model 1 -------------------
-  # This reactiveValue is to keep track of what model users have submitted
-  submissions <- reactiveValues("model1" = F,
-                                "model2" = F)
   
   # 1. Observe the user submission
   observeEvent(input$submit,{
