@@ -1,14 +1,14 @@
 ## Welcome to the NC12 Flood CamML!
 
-*Pronounced: "Camel"*
+*Pronounced: "CAMEL"* :ocean: :camel:
 
 </br>
 
-View **real-time NCDOT traffic camera images** 
+View **real-time NCDOT traffic camera images** along North Carolina Highway 12
 
-&
+AND
 
-Help us train a machine learning model to **detect flooding** along North Carolina Highway 12  
+Help us train a machine to **automatically detect roadway flooding** in images  
 
 </br>
 

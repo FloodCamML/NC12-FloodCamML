@@ -336,7 +336,7 @@ color: #5dbeff;
                              ", or ",
                              tippy::tippy(span(class="badge","Bad Image",style="background-color:#787878;"),h5("The image is dark, bad weather, camera is not working, rain on the camera lens, etc.")),
                              style="text-align:center;"),
-                          p("But are these predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. See ",actionLink("to_about_section", "About"), " for more info",                             style="text-align:center;")
+                          p("But are these predictions (about the roadway) correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. See ",actionLink("to_about_section", "About the Project"), " for more detailed instructions or hover over the classifications above.",                             style="text-align:center;")
                          )
                   ),
                   column(width=6,
@@ -353,7 +353,7 @@ color: #5dbeff;
                              span(h3("Local Tides"),align="center"),
                              uiOutput("tide_label"),
                              radioButtons(inputId =  "latest_tides_location",
-                                          label = "Tide Location",
+                                          label = "Gauge Location",
                                           inline = T,
                                           choices = c("Oregon Inlet Marina",
                                                       "USCG Hatteras"),
@@ -812,7 +812,7 @@ server <- function(input, output, session) {
         type = "success",
         immediate = T,
         animation = T,
-        text = "Thanks for helping make Flood CamML smarter!"
+        text = "Thanks for helping make the NC12 Flood CamML smarter!"
       )
   })
   
