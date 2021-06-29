@@ -271,6 +271,10 @@ ui <- dashboardPage(
         .content {
           padding: 5px;
         }
+        
+        body.skin-black.fixed {
+          overflow-y: auto;
+        }
 
  a {
  color: #5dbeff;
