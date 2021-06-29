@@ -160,6 +160,11 @@ predict_flooding <- function(camera_name){
   prediction
 }
 
+waiting_screen <- tagList(
+  spin_wave(),
+  h4("Loading Flood CamML")
+)
+
 ####____________________________________####
 #------------------------ Define UI ---------------------------------------
 ui <- dashboardPage(
@@ -194,14 +199,15 @@ ui <- dashboardPage(
                     border-left-color: white;
                     overflow-wrap: anywhere;
                     padding: 1px 20px;",
-            includeMarkdown("./text/directions.md"),
+            includeMarkdown("./text/cameras.md"),
             br()
         )
       ), 
       
       
       # ------------ _About Flood CamML -----------
-      menuItem("About", tabName = "About", icon = icon("info-circle"))
+      menuItem("About the Project", tabName = "About", icon = icon("info-circle")),
+      menuItem("The Model", tabName = "Model", icon = icon("info-circle"))
     )
   ),
   
@@ -224,7 +230,7 @@ ui <- dashboardPage(
       shinyjs::useShinyjs(),
       useShinyalert(),
       use_waiter(),
-      waiter::waiter_preloader(html = spin_wave(), color = "#222d32"),
+      waiter::waiter_preloader(html = waiting_screen, color = "#222d32"),
       tags$head(
         tags$style(HTML('
         .skin-black .main-header .logo {
@@ -266,6 +272,33 @@ ui <- dashboardPage(
           padding: 5px;
         }
 
+ a {
+ color: #5dbeff;
+  font-weight: bold;
+}
+
+a:hover {
+color: #5dbeff;
+    text-decoration: underline;
+}
+
+.skin-black .sidebar a {
+  font-weight: bold;
+  color:#5dbeff;
+}
+
+.skin-black .sidebar a:hover {
+  font-weight: bold;
+  color:#5dbeff;
+  text-decoration: underline;
+
+}
+
+.skin-black .sidebar-menu>li>a {
+    color: white;
+    border-left: 3px solid transparent;
+}
+
       '))),
       
       ##### Tab Items  ####
@@ -299,8 +332,7 @@ ui <- dashboardPage(
                              ", or ",
                              tippy::tippy(span(class="badge","Bad Image",style="background-color:#787878;"),h5("The image is dark, bad weather, camera is not working, rain on the camera lens, etc.")),
                              style="text-align:center;"),
-                           p("But are these predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. Your feedback will make our model better! See ",actionLink("to_about_section", "About"), " for more info",
-                             style="text-align:center;")
+                          p("But are these predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. See ",actionLink("to_about_section", "About"), " for more info",                             style="text-align:center;")
                          )
                   ),
                   column(width=6,
@@ -314,9 +346,11 @@ ui <- dashboardPage(
                       display: inline-block;
                       width:100%;",
                              align  = "left",
+                             span(h3("Local Tides"),align="center"),
                              uiOutput("tide_label"),
                              radioButtons(inputId =  "latest_tides_location",
                                           label = "Tide Location",
+                                          inline = T,
                                           choices = c("Oregon Inlet Marina",
                                                       "USCG Hatteras"),
                                           selected = "Oregon Inlet Marina")
@@ -333,14 +367,44 @@ ui <- dashboardPage(
         # ------------- About --------------
         tabItem(tabName = "About",
                 
-                fluidRow(
-                  includeMarkdown("./text/about.md")
-                )
-        )
-      )
+                fluidRow(column(
+                  width = 12,
+                  div(
+                    style = "background-color: #ffffff;
+                      padding: 10px;
+                      
+                      border-radius: 10px;
+                      margin: 10px 0;
+                      overflow-y: auto;
+                      display: inline-block;
+                      width:100%;",
+                    # height=300,
+                    align  = "left",
+                    includeMarkdown("./text/about_project.md")
+                  )
+                ))
+        ),
+        tabItem(tabName = "Model",
+
+                fluidRow(column(
+                  width = 12,
+                  div(
+                    style = "background-color: #ffffff;
+                      padding: 10px;
+                      
+                      border-radius: 10px;
+                      margin: 10px 0;
+                      overflow-y: auto;
+                      display: inline-block;
+                      width:100%;",
+                    # height=300,
+                    align  = "left",
+                    includeMarkdown("text/about_ML.md")
+                  )
+                ))
     )
   )
-)
+)))
 
 
 
@@ -678,6 +742,15 @@ server <- function(input, output, session) {
   observeEvent(input$shinyalert == T,{
     req(input$shinyalert)
     
+    shinyalert(
+        title = "Submitting responses...",
+        inputId = "submitting_alert",
+        showConfirmButton =F,
+        showCancelButton = F,
+        closeOnEsc = F,
+        animation = T
+      )
+
     updateActionButton(session = session,
                        inputId = "submit",
                        label = "SUBMITTED!", 
@@ -718,16 +791,25 @@ server <- function(input, output, session) {
       }
     )
     
+
     # Join tibbles of user and model data into one tibble
     data <- map_dfr(reactiveValuesToList(data_reactive_list), bind_rows)
     
     # Append data to google sheet
     suppressMessages(googlesheets4::sheet_append(ss = sheets_ID,
                                                  data = data))
-    
+
     # Write pictures to Google Drive
     purrr::map2(data$location, data$date, write_traffic_cam)
-    
+
+      shinyalert(
+        inputId = "submitted_alert",
+        title = "Submitted!",
+        type = "success",
+        immediate = T,
+        animation = T,
+        text = "Thanks for helping make Flood CamML smarter!"
+      )
   })
   
 }
