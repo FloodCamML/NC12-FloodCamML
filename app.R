@@ -232,6 +232,7 @@ ui <- dashboardPage(
       use_waiter(),
       waiter::waiter_preloader(html = waiting_screen, color = "#222d32"),
       tags$head(
+        tags$link(rel = "shortcut icon", href = "https://github.com/FloodCamML/FloodCamMLShiny/tree/cloud-run/www/flood_camel.png"),
         tags$style(HTML('
         .skin-black .main-header .logo {
           background-color: #000000;
@@ -317,7 +318,7 @@ color: #5dbeff;
                          div(
                            style="background-color: #ffffff;
                       padding: 10px;
-                      height: 200px;
+                      height: 225px;
                       border-radius: 10px;
                       margin: 10px 0;
                       overflow-y: auto;
@@ -336,15 +337,14 @@ color: #5dbeff;
                              ", or ",
                              tippy::tippy(span(class="badge","Bad Image",style="background-color:#787878;"),h5("The image is dark, bad weather, camera is not working, rain on the camera lens, etc.")),
                              style="text-align:center;"),
-                          p("But are these predictions (about the roadway) correct? Help us improve our model by telling us what you see using the buttons below each image: then click submit. See ",actionLink("to_about_section", "About the Project"), " for more detailed instructions or hover over the classifications above.",                             style="text-align:center;")
-                         )
+                          p("But are these roadway predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click", strong("submit"), " in the upper right. See ",actionLink("to_about_section", "About the Project"), " for more details or hover over the classifications above.", style="text-align:center;")                         )
                   ),
                   column(width=6,
                          ######_ Latest Conditions  ####
                          div(style="background-color: #ffffff;
                       padding: 10px;
                       border-radius: 10px;
-                      height: 200px;
+                      height: 225px;
                       margin: 10px 0;
                       overflow-y: auto;
                       display: inline-block;
@@ -352,6 +352,7 @@ color: #5dbeff;
                              align  = "left",
                              span(h3("Local Tides"),align="center"),
                              uiOutput("tide_label"),
+                             br(),
                              radioButtons(inputId =  "latest_tides_location",
                                           label = "Gauge Location",
                                           inline = T,
@@ -431,9 +432,10 @@ server <- function(input, output, session) {
              closeOnClickOutside = FALSE,
              showConfirmButton = T,
              confirmButtonText = "OK",
-             imageWidth = 50,
-             imageHeight = 50,
-             type = "info",
+             imageUrl = "https://github.com/FloodCamML/FloodCamMLShiny/tree/cloud-run/www/flood_camel.png",
+             imageWidth = 30,
+             imageHeight = 30,
+            #  type = "info",
              animation=F,
              size = "s",
              inputId = "splash_page", 

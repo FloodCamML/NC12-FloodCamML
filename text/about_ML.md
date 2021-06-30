@@ -1,6 +1,8 @@
 # The Science Behind the NC12 Flood CamML
 
-The NC12 Flood CamML is a supervised image recognition (whole image classification) model for detecing flooding in traffic webcam imagery. It consists of a neural network trained 'end to end' in an extremely discriminative approach that explicitly maps the classes to the image features, and optimized to extract the features that explicitly predict the class. The network works by linking an image feature extractor to a classifying head, such that feature extraction is limited to only those that help predict the class. The feature extraction therefore results in classification directly.
+## Overview:
+
+The NC12 Flood CamML is a supervised image recognition (whole image classification) model for detecting flooding in traffic webcam imagery. It consists of a neural network trained 'end to end' in an extremely discriminative approach that explicitly maps the classes to the image features, and optimized to extract the features that explicitly predict the class. The network works by linking an image feature extractor to a classifying head, such that feature extraction is limited to only those that help predict the class. The feature extraction therefore results in classification directly.
 
 The model is based on the popular MobilenetV2 feature extraction model with a custom distillation head (a max pooling layer), and a classifying head (a dense layer with dropout). The model is retrained with data from the scratch, but feature extractor is initialized using imagenet weights. There are a number of hyperparameters, listed below. The items with a * are decided automatically using a model tuner (see below)
 
