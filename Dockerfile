@@ -54,7 +54,6 @@ ADD models /home/shinyapp/models
 ADD keys /home/shinyapp/keys
 ADD text /home/shinyapp/text
 ADD camera_info.csv  /home/shinyapp/camera_info.csv
-ADD www /home/shinyapp/www
 
 # change working directory
 WORKDIR /home/shinyapp

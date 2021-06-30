@@ -1,6 +1,6 @@
 ## Welcome to the NC12 Flood CamML! 
 
-*Pronounced: "CAMEL"*  🐫
+*Pronounced: "CAMEL"*  🌊🐫
 
 </br>
 

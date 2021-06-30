@@ -232,7 +232,7 @@ ui <- dashboardPage(
       use_waiter(),
       waiter::waiter_preloader(html = waiting_screen, color = "#222d32"),
       tags$head(
-        tags$link(rel = "shortcut icon", href = "https://github.com/FloodCamML/FloodCamMLShiny/tree/cloud-run/www/flood_camel.png"),
+        tags$link(rel = "shortcut icon", href = "https://raw.githubusercontent.com/FloodCamML/FloodCamMLShiny/cloud-run/pics/camel.png"),
         tags$style(HTML('
         .skin-black .main-header .logo {
           background-color: #000000;
@@ -432,10 +432,6 @@ server <- function(input, output, session) {
              closeOnClickOutside = FALSE,
              showConfirmButton = T,
              confirmButtonText = "OK",
-             imageUrl = "https://github.com/FloodCamML/FloodCamMLShiny/tree/cloud-run/www/flood_camel.png",
-             imageWidth = 30,
-             imageHeight = 30,
-            #  type = "info",
              animation=F,
              size = "s",
              inputId = "splash_page", 
