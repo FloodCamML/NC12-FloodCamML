@@ -207,7 +207,8 @@ ui <- dashboardPage(
       
       # ------------ _About Flood CamML -----------
       menuItem("About the Project", tabName = "About", icon = icon("info-circle")),
-      menuItem("The Model", tabName = "Model", icon = icon("info-circle"))
+      menuItem("The Model", tabName = "Model", icon = icon("robot")),
+      menuItem("Contact Us", tabName = "Contact", icon = icon("envelope"))
     )
   ),
   
@@ -405,6 +406,24 @@ color: #5dbeff;
                     # height=300,
                     align  = "left",
                     includeMarkdown("text/about_ML.md")
+                  )
+                ))
+    ),
+    tabItem(tabName = "Contact",
+
+                fluidRow(column(
+                  width = 12,
+                  div(
+                    style = "background-color: #ffffff;
+                      padding: 10px;
+                      
+                      border-radius: 10px;
+                      margin: 10px 0;
+                      overflow-y: auto;
+                      display: inline-block;
+                      width:100%;",
+                    align  = "left",
+                    includeMarkdown("text/contact_us.md")
                   )
                 ))
     )
