@@ -4,6 +4,7 @@ This repository houses the code for the [COPE COMET](https://copecomet.github.io
 
 The published web application is: 
 * built with R using {[shiny](https://github.com/rstudio/shiny)}
+* containerized with [Docker](https://www.docker.com/)
 * hosted with [Google Cloud Run](https://cloud.google.com/run)
 * accessible at [https://floodcamml.org/](https://floodcamml.org/)
 
