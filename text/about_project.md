@@ -25,13 +25,10 @@ along NC12 at [DriveNC.gov](https://drivenc.gov), which we utilize here.
 The ML model has been trained using images from NC12 webcams during Hurricane Teddy in 2019. While the model does a good job at predicting roadway flooding, it was trained using images from only one storm. We think it can be better, but we need more labeled images! 
 
 When classifying the images, keep these things in mind:
- - **What do we mean by flooded?** Images should be labeled `Flooding` if several
-inches or more of water is on the roadway (typically recognizable by a sheen or reflection).
-- **If the roadway is just wet** -- i.e., there is no depth to the water on the road -- the image should be classified 
-  as `No Flooding`.
- - **What if there is water on the lens, the image is very blurred, or the camera isn't working?** If you cannot
-see the roadway in an image, images should be labeled `Bad Image`.
-- **If you are not sure if flood waters are in the roadway or off to the side of the roadway**, classify the image as `Not Sure`.
+ - **What do we mean by flooded?** Images should be labeled `Flooding` if several inches or more of water is on the roadway (typically recognizable by a sheen or reflection).
+ - **If the roadway is just wet** -- i.e., there is no depth to the water on the road -- the image should be classified as `No Flooding`.
+ - **What if there is water on the lens, the image is very blurred, or the camera isn't working?** If you cannot see the roadway in an image, images should be labeled `Bad Image`.
+ - **If you are not sure if flood waters are in the roadway or off to the side of the roadway**, classify the image as `Not Sure`.
 
 **Contributors (in alphabetical order):** 
 - *Katherine Anarde* - North Carolina State University

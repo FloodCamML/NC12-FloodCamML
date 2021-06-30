@@ -278,32 +278,32 @@ ui <- dashboardPage(
           overflow-y: auto;
         }
 
- a {
- color: #5dbeff;
-  font-weight: bold;
-}
+        a {
+        color: #5dbeff;
+          font-weight: bold;
+        }
 
-a:hover {
-color: #5dbeff;
-    text-decoration: underline;
-}
+        a:hover {
+        color: #5dbeff;
+            text-decoration: underline;
+        }
 
-.skin-black .sidebar a {
-  font-weight: bold;
-  color:#5dbeff;
-}
+        .skin-black .sidebar a {
+          font-weight: bold;
+          color:#5dbeff;
+        }
 
-.skin-black .sidebar a:hover {
-  font-weight: bold;
-  color:#5dbeff;
-  text-decoration: underline;
+        .skin-black .sidebar a:hover {
+          font-weight: bold;
+          color:#5dbeff;
+          text-decoration: underline;
 
-}
+        }
 
-.skin-black .sidebar-menu>li>a {
-    color: white;
-    border-left: 3px solid transparent;
-}
+        .skin-black .sidebar-menu>li>a {
+            color: white;
+            border-left: 3px solid transparent;
+        }
 
       '))),
       
