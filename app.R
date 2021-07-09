@@ -134,7 +134,9 @@ standardize <- function(img) {
   return(img)
 }
 
+
 predict_flooding <- function(camera_name){
+  
   
   # Reshape to correct dimensions (1, 224, 224, 3)
   img_array <- keras::image_load(paste0(tmp_dir,"/",camera_name,'.jpg'),
@@ -583,12 +585,19 @@ server <- function(input, output, session) {
   
   
   #--------------- Model Results ----------------------
+  get_prediction <-  function(cam_name){
+    reactive({
+      invalidateLater(millis = 5*60*1000, session = session)
+      predict_flooding(cam_name)
+    })
+  }
+  
   predict_reactive_list <- reactiveValues()
   
   walk(.x = camera_info$camera_name, .f = function(.x){
-    predict_reactive_list[[paste0(tolower(.x),"_predict")]] <- predict_flooding(.x)
+    predict_reactive_list[[paste0(tolower(.x),"_predict_reactive")]] <- get_prediction(.x)
   })
-  
+
   
   #--------------- Display Camera Feeds ----------------------
   
@@ -621,9 +630,10 @@ server <- function(input, output, session) {
   # Function to apply to each
   # takes the camera name, the reactive time, and the model predictions
   render_camera_ui <- function(cam_name, cam_time, model_prediction, id_suffix = ""){
+    model_predict_info <- model_prediction()
     
-    model_prediction_val <- model_prediction$prob * 100
-    model_prediction_class <- model_prediction$label
+    model_prediction_val <- model_predict_info$prob * 100
+    model_prediction_class <- model_predict_info$label
     cam_time_val <- cam_time()
     lst_time <- format(cam_time_val %>% lubridate::with_tz("America/New_York"), "%m/%d/%Y %H:%M")
     
@@ -699,7 +709,7 @@ server <- function(input, output, session) {
       output[[paste0(tolower(.x), "_selection")]] <- render_camera_ui(
         cam_name = .x,
         cam_time = time_reactive_list[[paste0(tolower(.x), "_time_reactive")]],
-        model_prediction = predict_reactive_list[[paste0(tolower(.x), "_predict")]]
+        model_prediction = predict_reactive_list[[paste0(tolower(.x), "_predict_reactive")]]
       )
     })
   })
@@ -805,7 +815,7 @@ server <- function(input, output, session) {
           store_cam_data(
             cam_name = .x,
             cam_time = isolate(time_reactive_list[[paste0(tolower(.x), "_time_reactive")]]()),
-            model_prediction = predict_reactive_list[[paste0(tolower(.x), "_predict")]],
+            model_prediction = isolate(predict_reactive_list[[paste0(tolower(.x), "_predict_reactive")]]()),
             button_response = button_info_model1[[paste0(tolower(.x), "_button_info")]]
           )
         
