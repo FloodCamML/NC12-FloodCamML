@@ -1,4 +1,4 @@
-# FloodCamMLShiny
+# NC-12 FloodCamML
 
 This repository houses the code for the [COPE COMET](https://copecomet.github.io/index.html) 
 "sunny-day" flooding shiny application, the NC12 Flood CamML (camel). This project is currently in 
