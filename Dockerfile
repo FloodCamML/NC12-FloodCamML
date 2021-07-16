@@ -52,6 +52,7 @@ RUN groupadd -r shinyapp && useradd --no-log-init -r -g shinyapp shinyapp
 ADD app.R /home/shinyapp/app.R
 ADD models /home/shinyapp/models
 ADD keys /home/shinyapp/keys
+ADD pics /home/shinyapp/pics
 ADD text /home/shinyapp/text
 ADD camera_info.csv  /home/shinyapp/camera_info.csv
 

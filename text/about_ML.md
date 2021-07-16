@@ -17,8 +17,7 @@ The model is based on the popular MobilenetV2 feature extraction model with a cu
 ## Classification targets:
 * 0 = Bad Image
 * 1 = Not Flooding
-* 2 = Not Sure
-* 3 = Flooding
+* 2 = Flooding
 
 
 ## Summary of approach:
