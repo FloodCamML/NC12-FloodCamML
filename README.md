@@ -4,9 +4,6 @@ This repository houses the code for the [COPE COMET](https://copecomet.github.io
 "sunny-day" flooding shiny application, the NC12 Flood CamML (camel). This project is currently in 
 active development and will be updated with each new model release.
 
-The published web application was built using {shiny}, is hosted via [shinyapps.io](https://www.shinyapps.io/) 
-and can be found at [https://copecomet.shinyapps.io/Flood_CamML_App/](https://copecomet.shinyapps.io/Flood_CamML_App/)
-
 <hr/>
 
 ## About the Flood CamML Project:
