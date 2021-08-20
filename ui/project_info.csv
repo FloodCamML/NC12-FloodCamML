@@ -1,0 +1,14 @@
+variable,value
+organization,Flood CamML
+title,NC12 Flood CamML
+subtitle,Flood detection using machine learning
+subtitle_description,Our model makes the following predictions for each image:
+tzone,America/New_York
+tzone_alias,EST/EDT
+logo_url,https://raw.githubusercontent.com/FloodCamML/FloodCamML.github.io/master/img/docusaurus.png
+description,"<p style = ""font-size: 14px;"">But are these roadway predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click, <strong>submit</strong>  in the upper right. See <a id=""to_about_section"" href=""#"" class=""action-button shiny-bound-input"">About the Project</a>  for more details or hover over the classifications above.</p>"
+submit_success,Thanks for making the NC12 Flood CamML smarter!
+button_classes,"Flooding,No Flooding,Bad Image"
+use_model,TRUE
+model,Rmodel_7_13_2021
+model_classes,"Bad Image,No Flooding,Flooding"

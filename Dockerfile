@@ -43,7 +43,7 @@ RUN /opt/conda/bin/conda install tensorflow keras pillow && \
 ENV RETICULATE_PYTHON /opt/conda/bin/python
     
 # install packages
-RUN install2.r shinydashboard shinyalert waiter magick tippy httr shinyWidgets shinydisconnect shinyjs googledrive googlesheets4 keras noaaoceans readr
+RUN install2.r shinydashboard shinyalert waiter magick tippy httr shinyWidgets shinydisconnect shinyjs googledrive googlesheets4 keras readr
 
 # create new user so it doesn't run as root
 RUN groupadd -r shinyapp && useradd --no-log-init -r -g shinyapp shinyapp
@@ -52,9 +52,8 @@ RUN groupadd -r shinyapp && useradd --no-log-init -r -g shinyapp shinyapp
 ADD app.R /home/shinyapp/app.R
 ADD models /home/shinyapp/models
 ADD keys /home/shinyapp/keys
-ADD pics /home/shinyapp/pics
 ADD text /home/shinyapp/text
-ADD camera_info.csv  /home/shinyapp/camera_info.csv
+ADD ui /home/shinyapp/ui
 
 # change working directory
 WORKDIR /home/shinyapp

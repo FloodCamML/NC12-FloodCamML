@@ -6,9 +6,13 @@
 
 View **real-time NCDOT traffic camera images** along North Carolina Highway 12
 
-#### AND
+</br>
 
-Help us train a machine to **automatically detect roadway flooding** in images  
+<strong style = "font-size:1rem">AND</strong>
+
+</br>
+
+Let us know what you see in each image to help train a machine that **automatically detects roadway flooding**. 
 
 </br>
 

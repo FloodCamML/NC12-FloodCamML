@@ -1,0 +1,4 @@
+﻿name,value,color,description
+Flooding,Flooding,#dd4b39,"If a car, while staying in its lane, has to drive through several inches or more of water."
+No Flooding,No Flooding,#00a65a,"If a car, while staying in its lane, does not have to drive through water."
+Bad Image,Bad Image,#787878,"If you cannot see the roadway in an image (i.e., the image is dark, bad weather, camera is not working, rain on the camera lens, etc.)"

@@ -1,0 +1,10 @@
+﻿camera_name,url,lat,long,use
+CanalZone,https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_CanalZone.jpg,,,T
+RBNurl,https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=RodantheBridgeNorth.jpg,,,F
+Mirlo,https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_MirloBeach.jpg,,,T
+Buxton,https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_Buxton.jpg,,,F
+NorthDock,https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_North_Dock.jpg,,,F
+SouthDock,https://tims.ncdot.gov/TIMS/Cameras/viewimage.ashx?id=Hatteras_Inlet_South_Dock.jpg,,,T
+Ocracoke,https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_OcracokeNorth.jpg,,,F
+SouthOcracoke,https://tims.ncdot.gov/tims/cameras/viewimage.ashx?id=Ocracoke_South.jpg,,,T
+NewInlet,https://tims.ncdot.gov/TIMS/cameras/viewimage.ashx?id=NC12_NewInlet.jpg,,,F
