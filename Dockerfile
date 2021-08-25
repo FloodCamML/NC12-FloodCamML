@@ -1,4 +1,4 @@
-FROM rocker/shiny-verse:4.0.5
+FROM rocker/shiny-verse:4.1.0
 
 # system libraries of general use
 ## install debian packages
@@ -43,7 +43,7 @@ RUN /opt/conda/bin/conda install tensorflow keras pillow && \
 ENV RETICULATE_PYTHON /opt/conda/bin/python
     
 # install packages
-RUN install2.r shinydashboard shinyalert waiter magick tippy httr shinyWidgets shinydisconnect shinyjs googledrive googlesheets4 keras readr
+RUN install2.r shinyalert waiter magick tippy httr shinyWidgets shinydisconnect shinyjs googledrive googlesheets4 keras readr bs4Dash
 
 # create new user so it doesn't run as root
 RUN groupadd -r shinyapp && useradd --no-log-init -r -g shinyapp shinyapp
@@ -54,7 +54,7 @@ ADD models /home/shinyapp/models
 ADD keys /home/shinyapp/keys
 ADD text /home/shinyapp/text
 ADD ui /home/shinyapp/ui
-
+ADD flood-camml.css /home/shinyapp/flood-camml.css
 # change working directory
 WORKDIR /home/shinyapp
 
