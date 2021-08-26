@@ -1,8 +1,8 @@
-# The Science Behind the NC12 Flood CamML
+# The NC12 Flood CamML model
 
 ## Overview:
 
-The NC12 Flood CamML is a supervised image recognition (whole image classification) model for detecting flooding in traffic webcam imagery. It consists of a neural network trained 'end to end' in an extremely discriminative approach that explicitly maps the classes to the image features, and optimized to extract the features that explicitly predict the class. The network works by linking an image feature extractor to a classifying head, such that feature extraction is limited to only those that help predict the class. The feature extraction therefore results in classification directly.
+The model used in the NC12 Flood CamML app is a supervised image recognition (whole image classification) model for detecting flooding in traffic webcam imagery. It consists of a neural network trained 'end to end' in an extremely discriminative approach that explicitly maps the classes to the image features, and optimized to extract the features that explicitly predict the class. The network works by linking an image feature extractor to a classifying head, such that feature extraction is limited to only those that help predict the class. The feature extraction therefore results in classification directly.
 
 The model is based on the popular MobilenetV2 feature extraction model with a custom distillation head (a max pooling layer), and a classifying head (a dense layer with dropout). The model is retrained with data from the scratch, but feature extractor is initialized using imagenet weights. There are a number of hyperparameters, listed below. The items with a * are decided automatically using a model tuner (see below)
 
@@ -17,8 +17,7 @@ The model is based on the popular MobilenetV2 feature extraction model with a cu
 ## Classification targets:
 * 0 = Bad Image
 * 1 = Not Flooding
-* 2 = Not Sure
-* 3 = Flooding
+* 2 = Flooding
 
 
 ## Summary of approach:
@@ -60,9 +59,17 @@ We use the hyperband algorithm (Li et al., 2017) implemented in keras-tuner, sea
 2. Dropout rate [.4,.5,.6]
 3. Learning rate [1e-4, 1e-5, 1e-6])
 
-
 ## References
 
 Li, L., Jamieson, K., DeSalvo, G., Rostamizadeh, A. and Talwalkar, A., 2017. Hyperband: A novel bandit-based approach to hyperparameter optimization. The Journal of Machine Learning Research, 18(1), pp.6765-6816.
 
 Sandler, M., Howard, A., Zhu, M., Zhmoginov, A. and Chen, L.C., 2018. Mobilenetv2: Inverted residuals and linear bottlenecks. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 4510-4520).
+
+## Contributors (in alphabetical order):
+- *Daniel Buscombe* - Marda Science, LLC, contracted to U.S. Geological Survey Pacific Coastal and Marine Science Center, Santa Cruz, California
+- *Adam Gold* - University of North Carolina - Chapel Hill
+- *Evan Goldstein* - University of North Carolina - Greensboro
+
+---
+
+This software is preliminary or provisional and is subject to revision. It is being provided to meet the need for timely best science. The software has not received final approval by the U.S. Geological Survey (USGS). No warranty, expressed or implied, is made by the USGS or the U.S. Government as to the functionality of the software and related material nor shall the fact of release constitute any such warranty. The software is provided on the condition that neither the USGS nor the U.S. Government shall be held liable for any damages resulting from the authorized or unauthorized use of the software.
