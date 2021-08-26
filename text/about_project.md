@@ -32,7 +32,6 @@ When classifying the images, keep these things in mind:
 
 **Contributors (in alphabetical order):** 
 - *Katherine Anarde* - North Carolina State University
-- *Daniel Buscombe* - Marda Science, LLC, contracted to U.S. Geological Survey Pacific Coastal and Marine Science Center, Santa Cruz, California
 - *Adam Gold* - University of North Carolina - Chapel Hill
 - *Evan Goldstein* - University of North Carolina - Greensboro
 - *Adam Kemberling* - Gulf of Maine Research Institute
