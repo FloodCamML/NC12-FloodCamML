@@ -29,13 +29,13 @@ badges_info = NULL
 ####  Google Auth  ####
 
 # Keys for Google Auth
-source("./keys/google_keys.R") 
+source("google_keys.R")
 
 # load google authentications
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 
-googledrive::drive_auth(path = "./keys/google_key.json")
+googledrive::drive_auth(path = "google_key.json")
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 # Create temp directory for storing pictures
@@ -52,17 +52,7 @@ panel_data <- tibble("panels" = 1:length(camera_info$camera_name)) %>%
 
 button_classes <- project_info %>% filter(variable == "button_classes") %>% pull(value) %>% stringr::str_split(.,pattern=",") %>% unlist()
 
-## 1. Load Model ---------------------------------------------------------------------
-use_model <- project_info %>% filter(variable == "use_model") %>% pull(value) %>% as.logical()
-
-if(use_model){
-  # Best model. 4 class classification model
-  library(keras)
-  badges_info <- readr::read_csv("./ui/badges.csv") 
-  model <- keras::load_model_tf(paste0("./models/",project_info %>% filter(variable == "model") %>% pull(value)))
-}
-
-## 2. Functions to load NCDOT Images ---------------------------------------------------------------------
+## 1. Functions to load NCDOT Images ---------------------------------------------------------------------
 
 get_traffic_cam <- function(camera_name){
   
@@ -90,28 +80,6 @@ write_traffic_cam <- function(camera_name, cam_time) {
   ))
 }
 
-## 3. Functions to classify Images ---------------------------------------------------------------------
-
-rescale <- function(dat, mn, mx){
-  m = min(dat)
-  M = max(dat)
-  
-  z <- ((mx-mn)*(dat-m))/((M-m)+mn)
-  return(z)
-}
-
-standardize <- function(img) {
-  s = sd(img)
-  m = mean(img)
-  img = (img - m) / s
-  
-  img =rescale(img, 0, 1)
-  
-  rm(s, m)
-  
-  return(img)
-}
-
 # Function to Apply to Each Camera
 get_cam <- function(cam_name){
   get_traffic_cam(cam_name)
@@ -123,44 +91,6 @@ walk(.x = camera_info$camera_name, .f = function(.x){
   time_reactive_list[[paste0(tolower(.x),"_time_reactive")]] <- get_cam(.x)
 })
 
-if(use_model){
-  predict_model <- function(camera_name){
-    
-    # Reshape to correct dimensions (1, 224, 224, 3)
-    img_array <- keras::image_load(paste0(tmp_dir,"/",camera_name,'.jpg'),
-                                   target_size = c(224,224)) %>% 
-      keras::image_to_array() %>% 
-      standardize() %>%
-      keras::array_reshape(., c(1, dim(.)))
-    
-    # Model prediction
-    prediction <- model %>% 
-      predict(x = img_array) %>% 
-      t()
-    
-    colnames(prediction) <- "prob"
-    
-    prediction <- prediction %>% 
-      as_tibble() %>% 
-      transmute(prob = round(prob, 2),
-                label = project_info %>% filter(variable == "model_classes") %>% pull(value) %>% stringr::str_split(.,pattern=",") %>% unlist()) %>% 
-      filter(prob == max(prob, na.rm=T)) %>% 
-      slice(1)
-    
-    prediction
-  }
-  
-  get_prediction <-  function(cam_name){
-    predict_model(cam_name)
-  }
-  
-  predict_reactive_list <- reactiveValues()
-  
-  walk(.x = camera_info$camera_name, .f = function(.x){
-    predict_reactive_list[[paste0(tolower(.x),"_predict_reactive")]] <- get_prediction(.x)
-    
-  })
-}
 
 waiting_screen <- tagList(
   spin_wave(),
@@ -207,9 +137,6 @@ ui <- bs4Dash::dashboardPage(
       # Menu tabs within sidebar. Model tab is shown if use_model = T as declared in project_info.csv
       menuItem("Cameras", tabName = "Cameras", icon = icon("camera-retro")),
       menuItem("About the Project", tabName = "About", icon = icon("info-circle")),
-      if(use_model){
-        menuItem("The Model", tabName = "Model", icon = icon("robot"))
-      },
       menuItem("Contact Us", tabName = "Contact", icon = icon("envelope"))
     )
   ),
@@ -257,7 +184,7 @@ ui <- bs4Dash::dashboardPage(
                                  fluidRow(style= "align-content: center; align-items: center;",
                                           column(width=6,
                                                  h3(project_info %>% filter(variable == "subtitle") %>% pull(value)),
-                                                 h5(project_info %>% filter(variable == "subtitle_description") %>% pull(value)),
+                                                 # h5(project_info %>% filter(variable == "subtitle_description") %>% pull(value)),
                                                  uiOutput(outputId = "badges")
                                           ),
                                           column(width=6,
@@ -283,17 +210,6 @@ ui <- bs4Dash::dashboardPage(
                   div(class="card",
                       div(class = "card-body",
                           includeMarkdown("./text/about_project.md")
-                      )
-                  )
-                )
-        ),
-        # ----------- Model tab (only shows if using model) -----------------
-        tabItem(tabName = "Model",
-                column(
-                  width = 12,
-                  div(class="card",
-                      div(class = "card-body",
-                          includeMarkdown("text/about_ML.md")
                       )
                   )
                 )
@@ -339,18 +255,6 @@ server <- function(input, output, session) {
              inputId = "splash_page",
              closeOnEsc = T)
   
-  #---------------- Render label badges for directions box --------------------
-  output$badges <- renderUI({
-    req(badges_info)
-    
-    badge_pieces <- c()
-    
-    for(i in 1:nrow(badges_info)){
-      badge_pieces[[i]] <- tippy::tippy(shiny::span(class="badge",badges_info$value[i],style=paste0("background-color:",badges_info$color[i],";","color:white;margin-left:0px;")),shiny::p(badges_info$description[i]))
-    }
-    
-    p(badge_pieces, style = "font-size:1.25rem;")
-  })
   
   #---------------- description render ---------------
   output$description <- renderUI({
@@ -428,12 +332,6 @@ server <- function(input, output, session) {
     time_reactive_list[[paste0(tolower(.x),"_time_reactive")]] <- get_cam(.x)
   })
   
-  if(use_model){
-    walk(.x = camera_info$camera_name, .f = function(.x){
-      predict_reactive_list[[paste0(tolower(.x),"_predict_reactive")]] <- get_prediction(.x)
-    })
-  }
-  
   #--------------- Display Camera Feeds ----------------------
   
   # 1. Build UI for Camera Image Displays
@@ -463,72 +361,7 @@ server <- function(input, output, session) {
   # 2. Display for image box / model classification
   
   # Function to apply to each
-  # takes the camera name, the reactive time, and the model predictions
-  render_camera_ui_model <- function(cam_name, cam_time, model_prediction, tzone = project_info %>% filter(variable == "tzone") %>% pull(value), tzone_alias = project_info %>% filter(variable == "tzone_alias") %>% pull(value),id_suffix = ""){
-    model_predict_info <- model_prediction
-    
-    model_prediction_val <- model_predict_info$prob * 100
-    model_prediction_class <- model_predict_info$label
-    cam_time_val <- cam_time
-    lst_time <- format(cam_time_val %>% lubridate::with_tz(tzone), "%m/%d/%Y %H:%M")
-    
-    # string prep for naming patterns for UI elements
-    # option to add suffix for "_unsupervised" ui elements
-    name_lcase <- tolower(cam_name)
-    img_output_id <- str_c(name_lcase, "_picture", id_suffix)
-    radio_button_id <- str_c(name_lcase, "_button_select", id_suffix)
-    button_clear <- str_c(name_lcase, "_clear", id_suffix)
-    
-    camera_button_ui <- renderUI({
-      div(class = "col-sm-12", style="padding:0px;",
-          div(class="card",
-              div(class = "card-header", style="font-size: 1.25rem; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; align-content: center; flex-wrap: nowrap;",
-                  gsub("([a-z])([A-Z])", "\\1 \\2", cam_name),
-                  span(class="badge",badges_info %>% 
-                         filter(value == model_prediction_class) %>% 
-                         pull(value),
-                       style=paste0("background-color:",badges_info %>% 
-                                      filter(value == model_prediction_class) %>% 
-                                      pull(color),";color:white;"))
-              ),
-              div(class="card-body",
-                  div(style="text-align:center;",
-                      
-                      # Display Cam Image
-                      imageOutput(img_output_id,
-                                  height="100%"),
-                      
-                      # Datetime for image
-                      p(paste0("ML probability of ", model_prediction_class,": ", model_prediction_val,"%")),
-                      p(paste0("Time: ", lst_time," ", tzone_alias)),
-                      
-                      # Image label buttons
-                      div(style="display:inline-block; text-align:center;",
-                          shinyWidgets::radioGroupButtons(inputId = radio_button_id,
-                                                          choiceNames = button_classes,
-                                                          choiceValues = button_classes,
-                                                          label=NULL,
-                                                          selected = character(0))
-                      ),
-                      
-                      # Clear selection button
-                      div(style="display:inline-block",
-                          actionButton(inputId = button_clear,
-                                       label = "Clear",
-                                       status = "secondary",
-                                       style="width:75px;"
-                          )
-                      )
-                  )
-              )
-          )
-      )
-    })
-    
-    #return the UI
-    return(camera_button_ui)
-  }
-  
+  # takes the camera name and the reactive time
   render_camera_ui_no_model <- function(cam_name, cam_time, tzone = project_info %>% filter(variable == "tzone") %>% pull(value), tzone_alias = project_info %>% filter(variable == "tzone_alias") %>% pull(value),id_suffix = ""){
     
     cam_time_val <- cam_time
@@ -585,19 +418,6 @@ server <- function(input, output, session) {
     return(camera_button_ui)
   }
   
-  if(use_model){
-    observe({
-      walk(.x = camera_info$camera_name, .f = function(.x){
-        output[[paste0(tolower(.x), "_selection")]] <- render_camera_ui_model(
-          cam_name = .x,
-          cam_time = time_reactive_list[[paste0(tolower(.x), "_time_reactive")]],
-          model_prediction = predict_reactive_list[[paste0(tolower(.x), "_predict_reactive")]]
-        )
-      })
-    })
-  }
-  
-  if(!use_model){
     observe({
       walk(.x = camera_info$camera_name, .f = function(.x){
         output[[paste0(tolower(.x), "_selection")]] <- render_camera_ui_no_model(
@@ -606,7 +426,7 @@ server <- function(input, output, session) {
         )
       })
     })
-  }
+  
   
   ####____________________________####
   ####__  User Data Collection  __####
@@ -689,17 +509,6 @@ server <- function(input, output, session) {
     ######  Supervised Model Feedback  ####
     
     # Function to pull relevant camera data from models and feedback
-    store_cam_data_model <- function(cam_name, cam_time, model_prediction, button_response){
-      cam_data <- tibble(
-        "date"          = c(cam_time),
-        "location"      = c(cam_name),
-        "filename"      = str_c(cam_name,"_",cam_time,".jpg"), 
-        "model_score"   = model_prediction$prob,
-        "model_class"   = model_prediction$label,
-        "user_response" = ifelse(is.null(button_response), NA, button_response)
-      )
-    }
-    
     store_cam_data_no_model <- function(cam_name, cam_time,  button_response){
       cam_data <- tibble(
         "date"          = c(cam_time),
@@ -714,23 +523,6 @@ server <- function(input, output, session) {
     # Create reactive list to hold all of user and model data
     data_reactive_list <- reactiveValues()
     
-    if(use_model){
-      walk(
-        .x = camera_info$camera_name,
-        .f = function(.x) {
-          data_reactive_list[[paste0(tolower(.x), "_data")]] <-
-            store_cam_data_model(
-              cam_name = .x,
-              cam_time = time_reactive_list[[paste0(tolower(.x), "_time_reactive")]],
-              model_prediction = predict_reactive_list[[paste0(tolower(.x), "_predict_reactive")]],
-              button_response = button_info[[paste0(tolower(.x), "_button_info")]]
-            )
-          
-        }
-      )
-    }
-    
-    if(!use_model){
       walk(
         .x = camera_info$camera_name,
         .f = function(.x) {
@@ -743,8 +535,6 @@ server <- function(input, output, session) {
           
         }
       )
-    }
-    
     
     # Join tibbles of user and model data into one tibble
     data <- map_dfr(reactiveValuesToList(data_reactive_list), bind_rows)
