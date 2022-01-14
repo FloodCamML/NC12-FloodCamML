@@ -6,7 +6,7 @@ subtitle_description,
 tzone,America/New_York
 tzone_alias,EST/EDT
 logo_url,https://raw.githubusercontent.com/FloodCamML/FloodCamML.github.io/master/img/docusaurus.png
-description,"<p style = ""font-size: 14px;"">But are these roadway predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click, <strong>submit</strong>Ê in the upper right. See <a id=""to_about_section"" href=""#"" class=""action-button shiny-bound-input"">About the Project</a>Ê for more details or hover over the classifications above.</p>"
+description,"<p style = ""font-size: 14px;"">But are these roadway predictions correct? Help us improve our model by telling us what you see using the buttons below each image: then click, <strong>submit</strong>  in the upper right. See <a id=""to_about_section"" href=""#"" class=""action-button shiny-bound-input"">About the Project</a>  for more details or hover over the classifications above.</p>"
 submit_success,Thanks for making the NC12 Flood CamML smarter!
 button_classes,"Flooding,No Flooding,Bad Image"
 use_model,FALSE
