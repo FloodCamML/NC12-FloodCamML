@@ -1,0 +1,11 @@
+﻿camera_name,url,lat,long,use
+NorthHatterasVillage,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=NC12_NorthHatterasVillage.jpg,,,T
+Buxton,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=NC12_Buxton.jpg,,,T
+Mirlo,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=NC12_MirloBeach.jpg,,,T
+NewInlet,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=NC12_NewInlet.jpg,,,T
+CanalZone,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=NC12_CanalZone.jpg,,,F
+RBNurl,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=RodantheBridgeNorth.jpg,,,F
+NorthDock,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=Hatteras_Inlet_North_Dock.jpg,,,F
+SouthDock,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=Hatteras_Inlet_South_Dock.jpg,,,F
+Ocracoke,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=NC12_OcracokeNorth.jpg,,,F
+SouthOcracoke,https://eapps.ncdot.gov/services/traffic-prod/v1/cameras/images?filename=Ocracoke_South.jpg,,,F

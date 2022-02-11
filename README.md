@@ -1,47 +1,26 @@
+
 # NC-12 FloodCamML
 
-This repository houses the code for the [COPE COMET](https://copecomet.github.io/index.html) 
-"sunny-day" flooding shiny application, the NC12 Flood CamML (camel). This project is currently in 
-active development and will be updated with each new model release.
+This repository houses code for a shiny web application that uses a machine learning model to classify webcam images for flooding and collect training images and labels from users. 
 
-<hr/>
+Created during the [COPE COMET](https://copecomet.github.io/index.html), this app is known as the [NC12 Flood CamML](https://github.com/FloodCamML/NC12-FloodCamML). 
 
-## About the Flood CamML Project:
-
-Flood CamML is an open source project funded by the NSF Coastlines and People program, and was 
-completed over ~72 hours by a group of awesome scientists from across the country. 
-
-**Our mission:** 
-Develop a machine learning (ML) algorithm that can detect from a single image (NCDOT Camera Feed) 
-whether or not a roadway is flooded.
-
-**Why did we make Flood CamML?:** 
-As scientists, we are interested in *how often* coastal roadways -- and the people that depend on 
-these roadways -- are impacted by shallow (nuisance) flooding or ponding.
-                     
-It is *easy* for a human to look at a traffic camera and recognize whether a roadway is flooded, but
-who has all day to look at web cameras? 
+The published web application is: 
+* built with R using {[shiny](https://github.com/rstudio/shiny)}
+* writing data to Google Sheets & images to Google Drive
+* containerized with [Docker](https://www.docker.com/)
+* hosted with [Google Cloud Run](https://cloud.google.com/run)
 
 
-**Our questions:** 
-Can we train a machine to detect flooding? Or can the machine train itself to detect flooding 
-given enough images? Can we create an avenue for citizen science participation to foster community
-engagement with science and improve model predictions?
+## Instructions
 
-**Why NC12?:** 
-North Carolina Highway 12 (NC12) provides access to the Outer Banks, a chain of low-lying barrier
-islands. Segments of NC12 are highly vulnerable to both storm and high-tide impacts, and when flooded,
-isolate communities from the mainland. The NC Department of Transportation maintains a series of webcams
-along NC12, which we utilize here!
+See the [Flood CamML website](https://floodcamml.org/docs/intro) for detailed instructions on how to make your own versions of this app. There are two corresponding code templates (deployed with [Google Cloud Run](https://github.com/FloodCamML/FloodCamML_cloudrun) and [shinyapps.io](https://github.com/FloodCamML/FloodCamML_shinyapps)) and a tutorial that will explain how to use the code templates, set up the necessary Google APIs/permissions, and deploy the app.
 
-**Instructions:** 
-Please help us validate our ML models to identify flooded roadways!
+## See the app in action
 
- - *What do we mean by flooded?* -- Images should be labeled *"flooded"* if several
-inches or more of water is on the roadway (typically recognizable by a sheen). Wet roadways should 
-be classified as "not flooded".   
+The NC-12 Flood CamML is available at [nc12.floodcamml.org](https://nc12.floodcamml.org/)
 
- - *What if you are not sure if the roadway is flooded, or if the image is blurred?* -- If you cannot
-see the roadway in an image, or if you are not sure if flood waters are in the roadway or off to the
-side, classify the image as "not sure"
+## About the CamML Project
+
+CamML is an open source project for crowd labeling and ML prediction of real-time webcam imagery. See the full project description at [floodcamml.org](https://floodcamml.org/).
 

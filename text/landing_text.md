@@ -1,14 +1,18 @@
-## Welcome to the NC12 Flood CamML!
+## Welcome to the NC12 Flood CamML! 
 
-*Pronounced: "NC12 Flood Camel"*
+*Pronounced: "CAMEL"*  🌊🐫
 
 </br>
 
-View **real-time NCDOT traffic camera images** 
+View **real-time NCDOT traffic camera images** along North Carolina Highway 12
 
-&
+</br>
 
-Help us **automatically detect flooding** along North Carolina Highway 12  
+<strong style = "font-size:1rem">AND</strong>
+
+</br>
+
+Let us know what you see in each image to help train a machine that **automatically detects roadway flooding**. 
 
 </br>
 
