@@ -29,13 +29,13 @@ badges_info = NULL
 ####  Google Auth  ####
 
 # Keys for Google Auth
-source("google_keys.R")
+source("keys/google_keys.R")
 
 # load google authentications
 folder_ID <- Sys.getenv("GOOGLE_FOLDER_ID")
 sheets_ID <- Sys.getenv("GOOGLE_SHEET_ID")
 
-googledrive::drive_auth(path = "google_key.json")
+googledrive::drive_auth(path = "keys/google_key.json")
 googlesheets4::gs4_auth(token = googledrive::drive_token())
 
 # Create temp directory for storing pictures

@@ -34,8 +34,8 @@ RUN groupadd -r shinyapp && useradd --no-log-init -r -g shinyapp shinyapp
 ADD app.R /home/shinyapp/app.R
 ADD models /home/shinyapp/models
 # ADD keys /home/shinyapp/keys
-ADD keys/google_key.json /home/shinyapp/google_key.json
-ADD keys/google_keys.R /home/shinyapp/google_keys.R
+ADD keys/google_key.json /home/shinyapp/keys/google_key.json
+ADD keys/google_keys.R /home/shinyapp/keys/google_keys.R
 
 ADD text /home/shinyapp/text
 ADD ui /home/shinyapp/ui
